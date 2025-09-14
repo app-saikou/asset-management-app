@@ -1,15 +1,39 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "資産管理アプリ",
+    "slug": "asset-management-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "assetmanagement",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "description": "資産の将来価値を計算し、資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測できます。",
+    "keywords": ["資産管理", "投資", "計算", "複利", "finance", "investment"],
+    "privacy": "public",
+    "category": "finance",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.appsaikou.assetmanagement",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
+        "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.appsaikou.assetmanagement",
+      "versionCode": 1,
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -19,6 +43,12 @@
     "plugins": ["expo-router", "expo-font", "expo-web-browser"],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b7be8d51-6857-46ff-9acb-2e401dae8e6e"
+      }
     }
   }
 }
