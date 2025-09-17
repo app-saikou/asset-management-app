@@ -18,10 +18,12 @@ export const useAssets = () => {
 
   // 資産データを取得
   const fetchAssets = async () => {
-    if (!user) return;
+    if (!user || !user.id) return;
 
     try {
       setLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('user_assets')
         .select('*')
@@ -35,12 +37,15 @@ export const useAssets = () => {
         throw error;
       }
 
-      if (data) {
+      if (data && typeof data.current_assets === 'number' && !isNaN(data.current_assets)) {
         setCurrentAssets(data.current_assets);
+      } else {
+        setCurrentAssets(0);
       }
     } catch (err) {
       console.error('資産データの取得エラー:', err);
       setError('資産データの取得に失敗しました');
+      setCurrentAssets(0);
     } finally {
       setLoading(false);
     }
@@ -48,19 +53,29 @@ export const useAssets = () => {
 
   // 資産データを保存・更新
   const saveAssets = async (assets: number) => {
-    if (!user) return;
+    if (!user || !user.id) return;
+
+    // 入力値の検証
+    if (isNaN(assets) || !isFinite(assets) || assets < 0 || assets > 999999999999) {
+      setError('有効な資産額を入力してください');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
       // 既存データがあるかチェック
-      const { data: existingData } = await supabase
+      const { data: existingData, error: checkError } = await supabase
         .from('user_assets')
         .select('id')
         .eq('user_id', user.id)
         .limit(1)
         .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
 
       if (existingData) {
         // 更新

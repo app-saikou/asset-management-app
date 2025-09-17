@@ -37,7 +37,7 @@ export default function CalculatorScreen() {
 
   // データベースから取得した資産額を入力欄に反映
   React.useEffect(() => {
-    if (currentAssets > 0) {
+    if (currentAssets > 0 && !isNaN(currentAssets) && isFinite(currentAssets)) {
       setInputValue(currentAssets.toString());
     }
   }, [currentAssets]);
@@ -50,8 +50,13 @@ export default function CalculatorScreen() {
   const calculateFutureValue = async () => {
     const assets = parseFloat(inputValue);
 
-    if (isNaN(assets) || assets <= 0) {
-      Alert.alert('エラー', '有効な資産額を入力してください');
+    if (
+      isNaN(assets) ||
+      assets <= 0 ||
+      !isFinite(assets) ||
+      assets > 999999999999
+    ) {
+      Alert.alert('エラー', '有効な資産額を入力してください（0円〜999兆円）');
       return;
     }
 
@@ -61,6 +66,13 @@ export default function CalculatorScreen() {
 
       // Formula: future_value = current_assets * (1 + 0.05) ^ 10
       const result = assets * Math.pow(1.05, 10);
+
+      // 結果の検証
+      if (isNaN(result) || !isFinite(result) || result < 0) {
+        Alert.alert('エラー', '計算結果が無効です');
+        return;
+      }
+
       setFutureValue(result);
     } catch (error) {
       Alert.alert('エラー', '資産額の保存に失敗しました');
@@ -68,7 +80,22 @@ export default function CalculatorScreen() {
   };
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('ja-JP').format(Math.round(num));
+    // 安全な数値フォーマット
+    if (isNaN(num) || !isFinite(num) || num < 0) {
+      return '0';
+    }
+
+    // 非常に大きな数値の場合は安全な範囲に制限
+    const safeNum = Math.min(Math.max(num, 0), 999999999999);
+    const roundedNum = Math.round(safeNum);
+
+    try {
+      // シンプルな数値フォーマット（正規表現を使わない）
+      return roundedNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    } catch (error) {
+      // 最終フォールバック
+      return roundedNum.toString();
+    }
   };
 
   if (loading) {
@@ -81,6 +108,26 @@ export default function CalculatorScreen() {
 
   if (!user) {
     return null; // Will redirect to login
+  }
+
+  // エラー表示
+  if (assetsError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{assetsError}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              // アプリを再起動する代わりに、エラー状態をリセット
+              setError(null);
+            }}
+          >
+            <Text style={styles.retryButtonText}>再試行</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   // console.log('KeyboardDismissView:', KeyboardDismissView);
@@ -190,6 +237,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: Colors.semantic.text.primary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.semantic.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.semantic.background,
+    fontSize: 16,
+    fontWeight: '600',
   },
   header: {
     alignItems: 'center',

@@ -1,29 +1,27 @@
 {
   "expo": {
-    "name": "資産管理アプリ",
-    "slug": "asset-management-app",
+    "name": "Polaris ― あなたのお金の羅針盤",
+    "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "assetmanagement",
+    "scheme": "polaris",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "description": "資産の将来価値を計算し、資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測できます。",
-    "keywords": ["資産管理", "投資", "計算", "複利", "finance", "investment"],
+    "description": "Polaris（ポラリス）は、あなたのお金の羅針盤となる資産管理アプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。",
     "privacy": "public",
-    "category": "finance",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.appsaikou.assetmanagement",
+      "bundleIdentifier": "com.appsaikou.polaris.finance",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
-        "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。"
+        "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -31,7 +29,7 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.appsaikou.assetmanagement",
+      "package": "com.appsaikou.polaris.finance",
       "versionCode": 1,
       "permissions": []
     },
@@ -40,7 +38,7 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-web-browser"],
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
     },
@@ -49,6 +47,7 @@
       "eas": {
         "projectId": "b7be8d51-6857-46ff-9acb-2e401dae8e6e"
       }
-    }
+    },
+    "owner": "y.konishi"
   }
 }

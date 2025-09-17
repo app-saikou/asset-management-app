@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 declare global {
   interface Window {
@@ -8,6 +9,9 @@ declare global {
 
 export function useFrameworkReady() {
   useEffect(() => {
-    window.frameworkReady?.();
-  });
+    // Webプラットフォームでのみ実行
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.frameworkReady?.();
+    }
+  }, []);
 }
