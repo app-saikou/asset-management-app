@@ -14,6 +14,7 @@ import { router } from 'expo-router';
 import { TrendingUp, Wallet } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useAssets } from '../../hooks/useAssets';
+import { useAssetHistory } from '../../hooks/useAssetHistory';
 // import KeyboardDismissView from '../../components/KeyboardDismissView';
 // import Toast from '../../components/Toast';
 
@@ -27,6 +28,7 @@ export default function CalculatorScreen() {
     error: assetsError,
     saveAssets,
   } = useAssets();
+  const { saveHistory } = useAssetHistory();
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -66,6 +68,9 @@ export default function CalculatorScreen() {
 
       // Formula: future_value = current_assets * (1 + 0.05) ^ 10
       const result = assets * Math.pow(1.05, 10);
+
+      // 履歴に保存
+      await saveHistory(assets, 5, 10, result);
 
       // 結果の検証
       if (isNaN(result) || !isFinite(result) || result < 0) {
@@ -140,13 +145,6 @@ export default function CalculatorScreen() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>資産計算ツール</Text>
-            <Text style={styles.subtitle}>
-              10年後の資産価値を計算します（年利5%）
-            </Text>
-          </View>
-
           <View style={styles.form}>
             <View style={styles.inputRow}>
               <View style={styles.inputSection}>
@@ -261,28 +259,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  header: {
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 48,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.semantic.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.semantic.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
   form: {
     flex: 1,
     paddingHorizontal: 24,
+    paddingTop: 24,
   },
   inputRow: {
     flexDirection: 'row',

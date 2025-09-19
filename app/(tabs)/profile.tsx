@@ -48,11 +48,6 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>プロフィール</Text>
-          <Text style={styles.subtitle}>アカウント情報</Text>
-        </View>
-
         <View style={styles.card}>
           <View style={styles.userInfo}>
             <View style={styles.avatarContainer}>
@@ -120,29 +115,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 48,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.semantic.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.semantic.text.secondary,
-    lineHeight: 24,
-  },
   card: {
     backgroundColor: Colors.semantic.surface,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
     borderColor: Colors.semantic.border,
+    marginTop: 24,
   },
   userInfo: {
     alignItems: 'center',
