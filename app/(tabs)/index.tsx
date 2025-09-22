@@ -2,220 +2,259 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../contexts/AuthContext';
-import { router } from 'expo-router';
-import { TrendingUp, Wallet } from 'lucide-react-native';
+import { TrendingUp } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
-import { useAssets } from '../../hooks/useAssets';
+import {
+  useMultipleAssets,
+  Asset,
+  AssetType,
+} from '../../hooks/useMultipleAssets';
 import { useAssetHistory } from '../../hooks/useAssetHistory';
-// import KeyboardDismissView from '../../components/KeyboardDismissView';
-// import Toast from '../../components/Toast';
+import TotalAssetCard from '../../components/TotalAssetCard';
+import AssetSectionCard from '../../components/AssetSectionCard';
+import AddAssetCard from '../../components/AddAssetCard';
+import InventoryButton from '../../components/InventoryButton';
+import CalculationResultModal from '../../components/CalculationResultModal';
+import AddAssetModal from '../../components/AddAssetModal';
+import FloatingActionButton from '../../components/FloatingActionButton';
 
-export default function CalculatorScreen() {
-  const [inputValue, setInputValue] = useState('');
-  const [futureValue, setFutureValue] = useState<number | null>(null);
-  const { user, loading } = useAuth();
+interface CalculationResult {
+  currentAssets: number;
+  futureValue: number;
+  annualRate: number;
+  years: number;
+  increaseAmount: number;
+}
+
+export default function AssetsScreen() {
   const {
-    currentAssets,
-    loading: assetsLoading,
-    error: assetsError,
-    saveAssets,
-  } = useAssets();
+    groupedAssets,
+    totalAssets,
+    loading,
+    error,
+    addAsset,
+    deleteAsset,
+    formatNumber,
+    getAssetTypeIcon,
+    getAssetTypeName,
+  } = useMultipleAssets();
+
   const { saveHistory } = useAssetHistory();
 
-  // Redirect to login if not authenticated
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/auth/login');
-    }
-  }, [user, loading]);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [calculationResult, setCalculationResult] =
+    useState<CalculationResult | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  // データベースから取得した資産額を入力欄に反映
-  React.useEffect(() => {
-    if (currentAssets > 0 && !isNaN(currentAssets) && isFinite(currentAssets)) {
-      setInputValue(currentAssets.toString());
-    }
-  }, [currentAssets]);
-
-  // const showToastMessage = (message: string) => {
-  //   setToastMessage(message);
-  //   setShowToast(true);
-  // };
-
-  const calculateFutureValue = async () => {
-    const assets = parseFloat(inputValue);
-
-    if (
-      isNaN(assets) ||
-      assets <= 0 ||
-      !isFinite(assets) ||
-      assets > 999999999999
-    ) {
-      Alert.alert('エラー', '有効な資産額を入力してください（0円〜999兆円）');
+  // 棚卸し計算ロジック
+  const handleInventoryCalculation = async () => {
+    if (totalAssets <= 0) {
+      Alert.alert(
+        'エラー',
+        '資産が登録されていません。まず資産を追加してください。'
+      );
       return;
     }
 
+    if (totalAssets > 999999999999) {
+      Alert.alert('エラー', '資産額が大きすぎます（上限: 999兆円）');
+      return;
+    }
+
+    setCalculating(true);
+
     try {
-      // 資産額をデータベースに保存
-      await saveAssets(assets);
+      // 固定値での計算（Phase 1）
+      const annualRate = 5; // 5%
+      const years = 10; // 10年
 
-      // Formula: future_value = current_assets * (1 + 0.05) ^ 10
-      const result = assets * Math.pow(1.05, 10);
-
-      // 履歴に保存
-      await saveHistory(assets, 5, 10, result);
+      // Formula: future_value = current_assets * (1 + rate) ^ years
+      const futureValue = Math.round(
+        totalAssets * Math.pow(1 + annualRate / 100, years)
+      );
+      const increaseAmount = Math.round(futureValue - totalAssets);
 
       // 結果の検証
-      if (isNaN(result) || !isFinite(result) || result < 0) {
+      if (isNaN(futureValue) || !isFinite(futureValue) || futureValue < 0) {
         Alert.alert('エラー', '計算結果が無効です');
         return;
       }
 
-      setFutureValue(result);
+      // 履歴に保存
+      await saveHistory(totalAssets, annualRate, years, futureValue);
+
+      // 結果を設定
+      const result: CalculationResult = {
+        currentAssets: totalAssets,
+        futureValue,
+        annualRate,
+        years,
+        increaseAmount,
+      };
+
+      setCalculationResult(result);
+      setShowResultModal(true);
     } catch (error) {
-      Alert.alert('エラー', '資産額の保存に失敗しました');
+      console.error('棚卸し計算エラー:', error);
+      Alert.alert('エラー', '計算中にエラーが発生しました');
+    } finally {
+      setCalculating(false);
     }
   };
 
-  const formatNumber = (num: number) => {
-    // 安全な数値フォーマット
-    if (isNaN(num) || !isFinite(num) || num < 0) {
-      return '0';
-    }
+  const handleCloseResultModal = () => {
+    setShowResultModal(false);
+    setCalculationResult(null);
+  };
 
-    // 非常に大きな数値の場合は安全な範囲に制限
-    const safeNum = Math.min(Math.max(num, 0), 999999999999);
-    const roundedNum = Math.round(safeNum);
+  const handleAddAsset = () => {
+    setShowAddModal(true);
+  };
 
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+  };
+
+  const handleSaveAsset = async (
+    type: AssetType,
+    name: string,
+    amount: number,
+    annualRate: number,
+    memo?: string
+  ) => {
     try {
-      // シンプルな数値フォーマット（正規表現を使わない）
-      return roundedNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      await addAsset(type, name, amount, annualRate, memo);
     } catch (error) {
-      // 最終フォールバック
-      return roundedNum.toString();
+      // エラーはaddAsset内でハンドリングされる
+      throw error;
     }
+  };
+
+  const handleEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    // TODO: 編集モーダルを開く
+    Alert.alert('開発中', '資産編集機能は開発中です');
+  };
+
+  const handleDeleteAsset = async (id: string) => {
+    await deleteAsset(id);
+  };
+
+  // 資産種別ごとの合計金額を計算
+  const getCategoryTotal = (assets: Asset[]): number => {
+    return assets.reduce((total, asset) => total + asset.amount, 0);
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>読み込み中...</Text>
-      </View>
-    );
-  }
-
-  if (!user) {
-    return null; // Will redirect to login
-  }
-
-  // エラー表示
-  if (assetsError) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{assetsError}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              // アプリを再起動する代わりに、エラー状態をリセット
-              setError(null);
-            }}
-          >
-            <Text style={styles.retryButtonText}>再試行</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="large"
+            color={Colors.semantic.button.primary}
+          />
+          <Text style={styles.loadingText}>資産を読み込み中...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // console.log('KeyboardDismissView:', KeyboardDismissView);
-  // console.log('Toast:', Toast);
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const hasAssets = totalAssets > 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.form}>
-            <View style={styles.inputRow}>
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>現在の資産額</Text>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.currencyIcon}>¥</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="例: 1000000"
-                    placeholderTextColor={Colors.base.gray400}
-                    value={inputValue}
-                    onChangeText={setInputValue}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                  />
-                </View>
-              </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {hasAssets && (
+          <>
+            <TotalAssetCard
+              totalAssets={totalAssets}
+              formatNumber={formatNumber}
+            />
+            <InventoryButton
+              onPress={handleInventoryCalculation}
+              disabled={calculating}
+              loading={calculating}
+            />
+          </>
+        )}
 
-              <TouchableOpacity
-                style={styles.calculateButton}
-                onPress={calculateFutureValue}
-              >
-                <TrendingUp
-                  size={18}
-                  color={Colors.semantic.text.inverse}
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.calculateButtonText}>計算する</Text>
-              </TouchableOpacity>
+        {hasAssets ? (
+          <>
+            <AssetSectionCard
+              type="cash"
+              assets={groupedAssets.cash}
+              totalAmount={getCategoryTotal(groupedAssets.cash)}
+              formatNumber={formatNumber}
+              getAssetTypeIcon={getAssetTypeIcon}
+              getAssetTypeName={getAssetTypeName}
+              onEditAsset={handleEditAsset}
+              onDeleteAsset={handleDeleteAsset}
+            />
+
+            <AssetSectionCard
+              type="stock"
+              assets={groupedAssets.stock}
+              totalAmount={getCategoryTotal(groupedAssets.stock)}
+              formatNumber={formatNumber}
+              getAssetTypeIcon={getAssetTypeIcon}
+              getAssetTypeName={getAssetTypeName}
+              onEditAsset={handleEditAsset}
+              onDeleteAsset={handleDeleteAsset}
+            />
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
+              <TrendingUp size={64} color={Colors.semantic.text.tertiary} />
             </View>
-
-            {futureValue !== null && (
-              <View style={styles.resultCard}>
-                <View style={styles.resultHeader}>
-                  <TrendingUp size={24} color={Colors.accent.success[500]} />
-                  <Text style={styles.resultTitle}>計算結果</Text>
-                </View>
-
-                <View style={styles.resultContent}>
-                  <Text style={styles.resultText}>10年後、あなたの資産は</Text>
-                  <Text style={styles.resultAmount}>
-                    {formatNumber(futureValue)}円
-                  </Text>
-                  <Text style={styles.resultSubtext}>になります</Text>
-                </View>
-
-                <View style={styles.calculationDetails}>
-                  <Text style={styles.detailsTitle}>計算詳細</Text>
-                  <Text style={styles.detailsText}>
-                    現在の資産: {formatNumber(parseFloat(inputValue))}円
-                  </Text>
-                  <Text style={styles.detailsText}>年利: 5%</Text>
-                  <Text style={styles.detailsText}>期間: 10年</Text>
-                  <Text style={styles.detailsText}>
-                    増加額: {formatNumber(futureValue - parseFloat(inputValue))}
-                    円
-                  </Text>
-                </View>
-              </View>
-            )}
+            <Text style={styles.emptyTitle}>資産を登録しましょう</Text>
+            <Text style={styles.emptySubtitle}>
+              現金や株式などの資産を登録して{'\n'}
+              総資産を管理しましょう
+            </Text>
+            <Text style={styles.emptyHint}>
+              右下の「資産を追加」ボタンから始めてください
+            </Text>
           </View>
-        </ScrollView>
-      </View>
+        )}
+      </ScrollView>
 
-      {/* <Toast
-        message={toastMessage}
-        type="success"
-        visible={showToast}
-        onHide={() => setShowToast(false)}
-        duration={3000}
-      /> */}
+      <CalculationResultModal
+        visible={showResultModal}
+        result={calculationResult}
+        onClose={handleCloseResultModal}
+        formatNumber={formatNumber}
+      />
+
+      <AddAssetModal
+        visible={showAddModal}
+        onClose={handleCloseAddModal}
+        onSave={handleSaveAsset}
+      />
+
+      <FloatingActionButton onPress={handleAddAsset} disabled={loading} />
     </SafeAreaView>
   );
 }
@@ -225,16 +264,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.semantic.background,
   },
-  content: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.semantic.text.secondary,
   },
   errorContainer: {
     flex: 1,
@@ -244,136 +282,49 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: Colors.semantic.text.primary,
+    color: Colors.accent.error[500],
     textAlign: 'center',
-    marginBottom: 20,
   },
-  retryButton: {
-    backgroundColor: Colors.semantic.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: Colors.semantic.background,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  form: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-    marginBottom: 30,
-  },
-  inputSection: {
+  scrollView: {
     flex: 1,
   },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.base.gray700,
-    marginBottom: 8,
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.semantic.surface,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
+  emptyContainer: {
     flex: 1,
-    fontSize: 16,
-    color: Colors.semantic.text.primary,
-  },
-  currencyIcon: {
-    fontSize: 18,
-    color: Colors.base.gray500,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  calculateButton: {
-    backgroundColor: Colors.primary[500],
-    borderRadius: 12,
-    height: 52,
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 120,
+    paddingVertical: 60,
   },
-  buttonIcon: {
-    marginRight: 12,
-  },
-  calculateButtonText: {
-    color: Colors.semantic.text.inverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resultCard: {
-    backgroundColor: Colors.semantic.surface,
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
-    marginTop: 16,
-  },
-  resultHeader: {
-    flexDirection: 'row',
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: `${Colors.semantic.text.tertiary}10`,
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.semantic.text.primary,
-    marginLeft: 12,
-  },
-  resultContent: {
-    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 24,
   },
-  resultText: {
-    fontSize: 16,
-    color: Colors.semantic.text.secondary,
-    marginBottom: 8,
-  },
-  resultAmount: {
-    fontSize: 32,
+  emptyTitle: {
+    fontSize: 24,
     fontWeight: '700',
-    color: Colors.accent.success[600],
-    marginBottom: 8,
-  },
-  resultSubtext: {
-    fontSize: 16,
-    color: Colors.semantic.text.secondary,
-  },
-  calculationDetails: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
-  },
-  detailsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
     color: Colors.semantic.text.primary,
     marginBottom: 12,
+    textAlign: 'center',
   },
-  detailsText: {
-    fontSize: 14,
+  emptySubtitle: {
+    fontSize: 16,
     color: Colors.semantic.text.secondary,
-    marginBottom: 4,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  emptyHint: {
+    fontSize: 14,
+    color: Colors.semantic.button.primary,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

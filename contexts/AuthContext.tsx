@@ -9,6 +9,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,6 +59,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const deleteAccount = async (password: string) => {
+    try {
+      if (!user?.email) {
+        return { error: { message: 'ユーザー情報が見つかりません' } };
+      }
+
+      // パスワード再認証
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password,
+      });
+
+      if (signInError) {
+        return { error: { message: 'パスワードが正しくありません' } };
+      }
+
+      // ユーザーアカウント削除（RLSにより関連データも削除される）
+      const { error: deleteError } = await supabase.auth.deleteUser();
+
+      if (deleteError) {
+        console.error('アカウント削除エラー:', deleteError);
+        return { error: deleteError };
+      }
+
+      // ローカル状態をクリア
+      setUser(null);
+      setSession(null);
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('予期しないエラー:', error);
+      return {
+        error: { message: error.message || 'アカウント削除に失敗しました' },
+      };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -67,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        deleteAccount,
       }}
     >
       {children}

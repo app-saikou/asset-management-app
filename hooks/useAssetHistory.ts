@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,7 +25,7 @@ export const useAssetHistory = () => {
   const { user } = useAuth();
 
   // 履歴データを取得
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -51,7 +51,7 @@ export const useAssetHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   // 履歴を保存
   const saveHistory = async (
@@ -148,15 +148,40 @@ export const useAssetHistory = () => {
     }
 
     const safeNum = Math.min(Math.max(num, 0), 999999999999);
-    return Math.floor(safeNum)
-      .toString()
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return Math.round(safeNum).toLocaleString('ja-JP');
   };
 
-  // 初回読み込み
+  // 初回読み込みとリアルタイム更新の設定
   useEffect(() => {
+    if (!user?.id) return;
+
+    // 初回データ取得
     fetchHistory();
-  }, [user?.id]);
+
+    // リアルタイム購読の設定
+    const channel = supabase
+      .channel('asset_history_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'asset_history',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('履歴データが変更されました:', payload);
+          // データが変更されたら再取得
+          fetchHistory();
+        }
+      )
+      .subscribe();
+
+    // クリーンアップ
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchHistory]);
 
   return {
     history,

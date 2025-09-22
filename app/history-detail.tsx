@@ -9,13 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  ArrowLeft,
-  Calculator,
-  Edit,
-  Trash2,
-  TrendingUp,
-} from 'lucide-react-native';
+import { ArrowLeft, Trash2, TrendingUp } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { useAssetHistory } from '../hooks/useAssetHistory';
 
@@ -43,18 +37,6 @@ export default function HistoryDetailScreen() {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${year}/${month}/${day} ${hours}:${minutes}`;
-  };
-
-  // 再計算（計算画面に遷移）
-  const handleRecalculate = () => {
-    router.push({
-      pathname: '/(tabs)',
-      params: {
-        currentAssets: currentAssets,
-        annualRate: annualRate,
-        years: years,
-      },
-    });
   };
 
   // 削除確認
@@ -127,11 +109,6 @@ export default function HistoryDetailScreen() {
               </Text>
             </View>
 
-            <View style={styles.arrowContainer}>
-              <View style={styles.arrowLine} />
-              <TrendingUp size={20} color={Colors.accent.success[500]} />
-            </View>
-
             <View style={styles.resultRow}>
               <Text style={styles.resultLabel}>将来価値</Text>
               <Text style={[styles.resultValue, styles.futureValue]}>
@@ -170,15 +147,6 @@ export default function HistoryDetailScreen() {
 
         {/* アクションボタン */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={styles.recalculateButton}
-            onPress={handleRecalculate}
-            activeOpacity={0.8}
-          >
-            <Calculator size={20} color={Colors.semantic.background} />
-            <Text style={styles.recalculateButtonText}>再計算</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={handleDelete}
@@ -274,17 +242,6 @@ const styles = StyleSheet.create({
   futureValue: {
     color: Colors.accent.success[600],
   },
-  arrowContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  arrowLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: Colors.accent.success[500],
-    marginRight: 8,
-  },
   increaseContainer: {
     alignItems: 'center',
     paddingTop: 20,
@@ -325,28 +282,9 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.primary,
   },
   actionContainer: {
-    flexDirection: 'row',
-    gap: 16,
     marginBottom: 40,
   },
-  recalculateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.semantic.button.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
-  },
-  recalculateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.semantic.background,
-  },
   deleteButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

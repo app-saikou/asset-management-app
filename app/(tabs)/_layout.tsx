@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Calculator, User, Calendar } from 'lucide-react-native';
+import { Wallet, User, Calendar } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 
 export default function TabLayout() {
@@ -26,10 +26,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '計算',
-          tabBarIcon: ({ size, color }) => (
-            <Calculator size={size} color={color} />
-          ),
+          title: '資産',
+          tabBarIcon: ({ size, color }) => <Wallet size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -44,7 +42,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'プロフィール',
+          title: 'マイページ',
           tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
         }}
       />
