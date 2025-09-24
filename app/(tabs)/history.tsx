@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   Calendar,
   TrendingUp,
@@ -19,10 +19,19 @@ import { Colors } from '../../constants/Colors';
 import { useAssetHistory, AssetHistoryItem } from '../../hooks/useAssetHistory';
 
 export default function HistoryScreen() {
-  const { groupedHistory, loading, error, formatNumber } = useAssetHistory();
+  const { groupedHistory, loading, error, formatNumber, fetchHistory } =
+    useAssetHistory();
   const [expandedGroups, setExpandedGroups] = React.useState<{
     [key: string]: boolean;
   }>({});
+
+  // 画面フォーカス時に履歴を再取得
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('📊 履歴画面フォーカス - データを再取得');
+      fetchHistory();
+    }, [fetchHistory])
+  );
 
   // グループの展開/折りたたみ
   const toggleGroup = (groupKey: string) => {
@@ -158,7 +167,8 @@ export default function HistoryScreen() {
                           {formatNumber(item.future_value)}
                         </Text>
                         <Text style={styles.historyDetails}>
-                          年利: {item.annual_rate}% | 期間: {item.years}年
+                          平均年利: {item.annual_rate.toFixed(1)}% | 期間:{' '}
+                          {item.years}年
                         </Text>
                         <Text style={styles.historyIncrease}>
                           増加: +¥{formatNumber(item.increase_amount)}

@@ -79,9 +79,14 @@ export function useMultipleAssets() {
       }
 
       const assetList = data || [];
+      const newTotal = calculateTotal(assetList);
+      console.log('📊 資産データ更新:', {
+        資産数: assetList.length,
+        総資産: newTotal.toLocaleString('ja-JP'),
+      });
       setAssets(assetList);
       setGroupedAssets(groupAssetsByType(assetList));
-      setTotalAssets(calculateTotal(assetList));
+      setTotalAssets(newTotal);
     } catch (err: any) {
       console.error('資産取得エラー:', err);
       setError(err.message || '資産の取得に失敗しました');

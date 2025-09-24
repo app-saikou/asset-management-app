@@ -11,11 +11,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Trash2, TrendingUp } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
-import { useAssetHistory } from '../hooks/useAssetHistory';
+import { useAssetHistory, AssetHistoryItem } from '../hooks/useAssetHistory';
+import { AssetChangeCard } from '../components/AssetChangeCard';
 
 export default function HistoryDetailScreen() {
   const params = useLocalSearchParams();
-  const { deleteHistory, formatNumber } = useAssetHistory();
+  const { deleteHistory, formatNumber, history } = useAssetHistory();
   const [deleting, setDeleting] = useState(false);
 
   const {
@@ -27,6 +28,10 @@ export default function HistoryDetailScreen() {
     increaseAmount,
     createdAt,
   } = params;
+
+  // 履歴詳細データを取得
+  const historyItem = history.find((item) => item.id === id);
+  const assetDetails = historyItem?.asset_history_details || [];
 
   // 日付フォーマット
   const formatDateTime = (dateString: string) => {
@@ -130,8 +135,10 @@ export default function HistoryDetailScreen() {
           <Text style={styles.cardTitle}>計算条件</Text>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>年利</Text>
-            <Text style={styles.detailValue}>{annualRate}%</Text>
+            <Text style={styles.detailLabel}>平均年利</Text>
+            <Text style={styles.detailValue}>
+              {Number(annualRate).toFixed(1)}%
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
@@ -144,6 +151,25 @@ export default function HistoryDetailScreen() {
             <Text style={styles.detailValue}>年1回</Text>
           </View>
         </View>
+
+        {/* 資産別変化セクション */}
+        {assetDetails.length > 0 && (
+          <View style={styles.assetChangesSection}>
+            <Text style={styles.sectionTitle}>資産別変化</Text>
+            <Text style={styles.sectionSubtitle}>
+              棚卸し調整で変更された各資産の詳細
+            </Text>
+            <View style={styles.assetChangesList}>
+              {assetDetails.map((detail) => (
+                <AssetChangeCard
+                  key={detail.id}
+                  detail={detail}
+                  formatNumber={formatNumber}
+                />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* アクションボタン */}
         <View style={styles.actionContainer}>
@@ -280,6 +306,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.semantic.text.primary,
+  },
+  assetChangesSection: {
+    marginTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: Colors.semantic.text.secondary,
+    marginBottom: 20,
+  },
+  assetChangesList: {
+    gap: 0, // AssetChangeCardが独自にmarginBottomを持っているため
   },
   actionContainer: {
     marginBottom: 40,

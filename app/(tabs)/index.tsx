@@ -23,6 +23,7 @@ import InventoryButton from '../../components/InventoryButton';
 import CalculationResultModal from '../../components/CalculationResultModal';
 import AddAssetModal from '../../components/AddAssetModal';
 import FloatingActionButton from '../../components/FloatingActionButton';
+import { InventoryAdjustmentModal } from '../../components/InventoryAdjustmentModal';
 
 interface CalculationResult {
   currentAssets: number;
@@ -43,6 +44,7 @@ export default function AssetsScreen() {
     formatNumber,
     getAssetTypeIcon,
     getAssetTypeName,
+    fetchAssets,
   } = useMultipleAssets();
 
   const { saveHistory } = useAssetHistory();
@@ -53,6 +55,23 @@ export default function AssetsScreen() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+
+  // 調整モーダルを開く
+  const handleOpenAdjustment = () => {
+    setShowResultModal(false);
+    setShowAdjustmentModal(true);
+  };
+
+  // 調整モーダルを閉じる
+  const handleCloseAdjustment = async () => {
+    setShowAdjustmentModal(false);
+    setCalculationResult(null);
+    // モーダルを閉じる際に資産を再取得（最新データを反映）
+    console.log('🔄 調整モーダル終了 - 資産を再取得...');
+    await fetchAssets();
+    console.log('✅ 調整後の資産取得完了');
+  };
 
   // 棚卸し計算ロジック
   const handleInventoryCalculation = async () => {
@@ -101,7 +120,8 @@ export default function AssetsScreen() {
       };
 
       setCalculationResult(result);
-      setShowResultModal(true);
+      // 計算結果モーダルをスキップして直接調整モーダルを開く
+      setShowAdjustmentModal(true);
     } catch (error) {
       console.error('棚卸し計算エラー:', error);
       Alert.alert('エラー', '計算中にエラーが発生しました');
@@ -246,12 +266,21 @@ export default function AssetsScreen() {
         result={calculationResult}
         onClose={handleCloseResultModal}
         formatNumber={formatNumber}
+        onAdjust={handleOpenAdjustment}
       />
 
       <AddAssetModal
         visible={showAddModal}
         onClose={handleCloseAddModal}
         onSave={handleSaveAsset}
+      />
+
+      <InventoryAdjustmentModal
+        visible={showAdjustmentModal}
+        onClose={handleCloseAdjustment}
+        currentAssets={[...groupedAssets.cash, ...groupedAssets.stock]}
+        totalAssets={totalAssets}
+        years={10}
       />
 
       <FloatingActionButton onPress={handleAddAsset} disabled={loading} />

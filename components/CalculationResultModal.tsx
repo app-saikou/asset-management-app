@@ -23,6 +23,7 @@ interface CalculationResultModalProps {
   result: CalculationResult | null;
   onClose: () => void;
   formatNumber: (num: number) => string;
+  onAdjust?: () => void;
 }
 
 export default function CalculationResultModal({
@@ -30,6 +31,7 @@ export default function CalculationResultModal({
   result,
   onClose,
   formatNumber,
+  onAdjust,
 }: CalculationResultModalProps) {
   if (!result) return null;
 
@@ -109,6 +111,11 @@ export default function CalculationResultModal({
         </ScrollView>
 
         <View style={styles.footer}>
+          {onAdjust && (
+            <TouchableOpacity style={styles.adjustButton} onPress={onAdjust}>
+              <Text style={styles.adjustButtonText}>資産を調整</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.confirmButton} onPress={onClose}>
             <Text style={styles.confirmButtonText}>確認</Text>
           </TouchableOpacity>
@@ -259,6 +266,20 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     borderTopWidth: 1,
     borderTopColor: Colors.semantic.border,
+    gap: 12,
+  },
+  adjustButton: {
+    backgroundColor: Colors.semantic.surface,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.semantic.button.primary,
+  },
+  adjustButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.semantic.button.primary,
   },
   confirmButton: {
     backgroundColor: Colors.semantic.button.primary,

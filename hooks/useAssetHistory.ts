@@ -2,6 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+export interface AssetHistoryDetail {
+  id: string;
+  asset_id: string;
+  asset_name: string;
+  asset_type: 'cash' | 'stock';
+  original_amount: number;
+  adjusted_amount: number;
+  annual_rate: number;
+  future_value: number;
+  increase_amount: number;
+}
+
 export interface AssetHistoryItem {
   id: string;
   date: string;
@@ -11,6 +23,7 @@ export interface AssetHistoryItem {
   future_value: number;
   increase_amount: number;
   created_at: string;
+  asset_history_details?: AssetHistoryDetail[];
 }
 
 export interface GroupedHistory {
@@ -34,7 +47,12 @@ export const useAssetHistory = () => {
 
       const { data, error: fetchError } = await supabase
         .from('asset_history')
-        .select('*')
+        .select(
+          `
+          *,
+          asset_history_details(*)
+        `
+        )
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -58,14 +76,23 @@ export const useAssetHistory = () => {
     currentAssets: number,
     annualRate: number,
     years: number,
-    futureValue: number
+    futureValue: number,
+    assetDetails?: Array<{
+      id: string;
+      name: string;
+      type: 'cash' | 'stock';
+      originalAmount: number;
+      adjustedAmount: number;
+      annualRate: number;
+    }>
   ) => {
     if (!user?.id) return;
 
     try {
       const increaseAmount = futureValue - currentAssets;
 
-      const { error: insertError } = await supabase
+      // メイン履歴を保存
+      const { data: historyData, error: insertError } = await supabase
         .from('asset_history')
         .insert([
           {
@@ -76,10 +103,43 @@ export const useAssetHistory = () => {
             future_value: futureValue,
             increase_amount: increaseAmount,
           },
-        ]);
+        ])
+        .select()
+        .single();
 
-      if (insertError) {
+      if (insertError || !historyData) {
         throw insertError;
+      }
+
+      // 資産詳細データがある場合は保存
+      if (assetDetails && assetDetails.length > 0) {
+        const detailsToInsert = assetDetails.map((asset) => {
+          const assetFutureValue = Math.round(
+            asset.adjustedAmount * Math.pow(1 + asset.annualRate / 100, years)
+          );
+          const assetIncreaseAmount = assetFutureValue - asset.adjustedAmount;
+
+          return {
+            history_id: historyData.id,
+            asset_id: asset.id,
+            asset_name: asset.name,
+            asset_type: asset.type,
+            original_amount: asset.originalAmount,
+            adjusted_amount: asset.adjustedAmount,
+            annual_rate: asset.annualRate,
+            future_value: assetFutureValue,
+            increase_amount: assetIncreaseAmount,
+          };
+        });
+
+        const { error: detailsError } = await supabase
+          .from('asset_history_details')
+          .insert(detailsToInsert);
+
+        if (detailsError) {
+          console.error('資産詳細保存エラー:', detailsError);
+          // 詳細保存エラーでも履歴は保存済みなので継続
+        }
       }
 
       // 履歴を再取得
@@ -151,36 +211,12 @@ export const useAssetHistory = () => {
     return Math.round(safeNum).toLocaleString('ja-JP');
   };
 
-  // 初回読み込みとリアルタイム更新の設定
+  // 初回読み込みのみ
   useEffect(() => {
     if (!user?.id) return;
 
-    // 初回データ取得
+    // 初回データ取得のみ
     fetchHistory();
-
-    // リアルタイム購読の設定
-    const channel = supabase
-      .channel('asset_history_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'asset_history',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('履歴データが変更されました:', payload);
-          // データが変更されたら再取得
-          fetchHistory();
-        }
-      )
-      .subscribe();
-
-    // クリーンアップ
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [user?.id, fetchHistory]);
 
   return {
