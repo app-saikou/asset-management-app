@@ -18,12 +18,13 @@ import {
 import { useAssetHistory } from '../../hooks/useAssetHistory';
 import TotalAssetCard from '../../components/TotalAssetCard';
 import AssetSectionCard from '../../components/AssetSectionCard';
-import AddAssetCard from '../../components/AddAssetCard';
 import InventoryButton from '../../components/InventoryButton';
 import CalculationResultModal from '../../components/CalculationResultModal';
 import AddAssetModal from '../../components/AddAssetModal';
 import FloatingActionButton from '../../components/FloatingActionButton';
 import { InventoryAdjustmentModal } from '../../components/InventoryAdjustmentModal';
+import { useInterstitialAdDisplay } from '../../components/InterstitialAd';
+import { AdBanner } from '../../components/AdBanner';
 
 interface CalculationResult {
   currentAssets: number;
@@ -48,6 +49,7 @@ export default function AssetsScreen() {
   } = useMultipleAssets();
 
   const { saveHistory } = useAssetHistory();
+  const { showInterstitialAd } = useInterstitialAdDisplay();
 
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [calculationResult, setCalculationResult] =
@@ -120,6 +122,7 @@ export default function AssetsScreen() {
       };
 
       setCalculationResult(result);
+
       // 計算結果モーダルをスキップして直接調整モーダルを開く
       setShowAdjustmentModal(true);
     } catch (error) {
@@ -279,7 +282,6 @@ export default function AssetsScreen() {
         visible={showAdjustmentModal}
         onClose={handleCloseAdjustment}
         currentAssets={[...groupedAssets.cash, ...groupedAssets.stock]}
-        totalAssets={totalAssets}
         years={10}
       />
 
@@ -355,5 +357,13 @@ const styles = StyleSheet.create({
     color: Colors.semantic.button.primary,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  footerBanner: {
+    marginHorizontal: 16,
+    marginBottom: 0,
+    position: 'absolute',
+    bottom: 0, // タブナビゲーションの上に配置
+    left: 0,
+    right: 0,
   },
 });

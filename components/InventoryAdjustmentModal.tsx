@@ -9,11 +9,12 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { X, Save, AlertCircle } from 'lucide-react-native';
+import { X, Save } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { useAssetHistory } from '../hooks/useAssetHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useInterstitialAdDisplay } from './InterstitialAd';
 
 interface Asset {
   id: string;
@@ -33,17 +34,17 @@ interface InventoryAdjustmentModalProps {
   visible: boolean;
   onClose: () => void;
   currentAssets: Asset[];
-  totalAssets: number;
   years?: number;
 }
 
 export const InventoryAdjustmentModal: React.FC<
   InventoryAdjustmentModalProps
-> = ({ visible, onClose, currentAssets, totalAssets, years = 10 }) => {
+> = ({ visible, onClose, currentAssets, years = 10 }) => {
   const [adjustedAssets, setAdjustedAssets] = useState<AdjustedAsset[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const { saveHistory } = useAssetHistory();
   const { user } = useAuth();
+  const { showInterstitialAd } = useInterstitialAdDisplay();
 
   // 初期化
   useEffect(() => {
@@ -58,6 +59,8 @@ export const InventoryAdjustmentModal: React.FC<
       setHasChanges(false);
     }
   }, [visible, currentAssets]);
+
+  // モーダルが開いた時の広告表示は削除（保存時に表示するため）
 
   // 各資産の将来価値を計算
   const calculateAssetFutureValue = (amount: number, annualRate: number) => {
@@ -186,23 +189,76 @@ export const InventoryAdjustmentModal: React.FC<
         assetDetails
       );
 
-      Alert.alert(
-        '棚卸し完了',
-        `資産が調整されました。\n\n調整前: ${formatAmount(
-          totals.originalTotal
-        )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
-          totals.totalDifference >= 0 ? '+' : ''
-        }${formatAmount(totals.totalDifference)}円`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // モーダルを閉じてから資産を再取得
-              onClose();
+      // インタースティシャル広告を表示（保存完了後）
+      try {
+        console.log('🎯 Showing interstitial ad after save...');
+        console.log('📱 Modal state before ad:', { visible: true, hasChanges });
+
+        const adShown = await showInterstitialAd(() => {
+          // 広告が閉じた後に少し遅延してからアラートを表示
+          setTimeout(() => {
+            console.log('📱 Showing completion alert after ad closed...');
+            Alert.alert(
+              '棚卸し完了',
+              `資産が調整されました。\n\n調整前: ${formatAmount(
+                totals.originalTotal
+              )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+                totals.totalDifference >= 0 ? '+' : ''
+              }${formatAmount(totals.totalDifference)}円`,
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    // モーダルを閉じてから資産を再取得
+                    onClose();
+                  },
+                },
+              ]
+            );
+          }, 500); // 500ms遅延でモーダルの重複を防ぐ
+        });
+
+        // 広告が表示されなかった場合はすぐにアラートを表示
+        if (!adShown) {
+          Alert.alert(
+            '棚卸し完了',
+            `資産が調整されました。\n\n調整前: ${formatAmount(
+              totals.originalTotal
+            )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+              totals.totalDifference >= 0 ? '+' : ''
+            }${formatAmount(totals.totalDifference)}円`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // モーダルを閉じてから資産を再取得
+                  onClose();
+                },
+              },
+            ]
+          );
+        }
+      } catch (error) {
+        console.log('インタースティシャル広告表示エラー:', error);
+        // 広告エラーでもアラートを表示
+        Alert.alert(
+          '棚卸し完了',
+          `資産が調整されました。\n\n調整前: ${formatAmount(
+            totals.originalTotal
+          )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+            totals.totalDifference >= 0 ? '+' : ''
+          }${formatAmount(totals.totalDifference)}円`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // モーダルを閉じてから資産を再取得
+                onClose();
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      }
     } catch (error) {
       console.error('棚卸し保存エラー:', error);
       Alert.alert('エラー', '棚卸しの保存に失敗しました。');
@@ -240,23 +296,7 @@ export const InventoryAdjustmentModal: React.FC<
             <X size={24} color={Colors.semantic.text.secondary} />
           </TouchableOpacity>
           <Text style={styles.title}>資産棚卸し</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-            ]}
-            disabled={!hasChanges}
-          >
-            <Save
-              size={20}
-              color={
-                hasChanges
-                  ? Colors.semantic.button.primary
-                  : Colors.semantic.text.tertiary
-              }
-            />
-          </TouchableOpacity>
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView style={styles.content}>
@@ -379,6 +419,35 @@ export const InventoryAdjustmentModal: React.FC<
               </View>
             ))}
           </View>
+
+          {/* 保存ボタン */}
+          <View style={styles.saveSection}>
+            <TouchableOpacity
+              onPress={handleSave}
+              style={[
+                styles.saveButtonBottom,
+                !hasChanges && styles.saveButtonDisabled,
+              ]}
+              disabled={!hasChanges}
+            >
+              <Save
+                size={20}
+                color={
+                  hasChanges
+                    ? Colors.semantic.surface
+                    : Colors.semantic.text.tertiary
+                }
+              />
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  !hasChanges && styles.saveButtonTextDisabled,
+                ]}
+              >
+                保存
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
     </Modal>
@@ -412,6 +481,35 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.5,
+  },
+  saveSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 48,
+    borderTopWidth: 1,
+    borderTopColor: Colors.semantic.border,
+    backgroundColor: Colors.semantic.surface,
+  },
+  saveButtonBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.semantic.button.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.semantic.surface,
+  },
+  saveButtonTextDisabled: {
+    color: Colors.semantic.text.tertiary,
+  },
+  headerSpacer: {
+    width: 44, // 保存ボタンの幅と同じにしてバランスを取る
   },
   content: {
     flex: 1,

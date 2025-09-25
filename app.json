@@ -20,7 +20,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。",
+        "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
       }
     },
     "android": {
@@ -30,7 +32,7 @@
       },
       "package": "com.appsaikou.polaris.finance",
       "versionCode": 1,
-      "permissions": []
+      "permissions": ["com.google.android.gms.permission.AD_ID"]
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +47,19 @@
           "ios": {
             "deploymentTarget": "16.0"
           }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。"
         }
       ]
     ],

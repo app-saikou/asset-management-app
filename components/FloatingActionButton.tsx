@@ -97,8 +97,8 @@ export default function FloatingActionButton({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 32, // タブバーより上に配置
-    right: 32,
+    bottom: 84, // タブバーより上に配置
+    right: 20,
     zIndex: 1000,
     shadowColor: Colors.semantic.text.primary,
     shadowOffset: {

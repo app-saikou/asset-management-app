@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors } from '../constants/Colors';
 
