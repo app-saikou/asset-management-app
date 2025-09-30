@@ -3,7 +3,11 @@ import { View, StyleSheet } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { Colors } from '../constants/Colors';
 import { useSubscription } from '../hooks/useSubscription';
-import { getAdUnitId, getCurrentPlatform } from '../lib/admob';
+import {
+  getAdUnitId,
+  getCurrentPlatform,
+  isAdDisplayEnabled,
+} from '../lib/admob-config';
 
 interface BannerAdComponentProps {
   style?: any;
@@ -22,16 +26,16 @@ export const BannerAdComponent: React.FC<BannerAdComponentProps> = ({
   const [adError, setAdError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !isSubscribed) {
-      // 無料ユーザーのみ広告を表示
+    // 広告が有効かつ無料ユーザーのみ広告を表示
+    if (!isLoading && !isSubscribed && isAdDisplayEnabled()) {
       const platform = getCurrentPlatform();
       const unitId = getAdUnitId('banner', platform);
       setAdUnitId(unitId);
     }
   }, [isSubscribed, isLoading]);
 
-  // サブスクリプションユーザーまたはローディング中は広告を表示しない
-  if (isLoading || isSubscribed || !adUnitId) {
+  // サブスクリプションユーザー、ローディング中、または広告無効時は広告を表示しない
+  if (isLoading || isSubscribed || !adUnitId || !isAdDisplayEnabled()) {
     return null;
   }
 

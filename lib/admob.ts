@@ -1,23 +1,10 @@
 import mobileAds from 'react-native-google-mobile-ads';
+import { getAdUnitId, getCurrentPlatform } from './admob-config';
 
-// AdMobアプリID（テスト用）
-// 本番環境では実際のAdMobアプリIDに変更してください
+// AdMobアプリID（本番用）
 export const ADMOB_APP_ID = {
-  ios: 'ca-app-pub-3940256099942544~1458002511', // テスト用iOSアプリID
-  android: 'ca-app-pub-3940256099942544~3347511713', // テスト用AndroidアプリID
-};
-
-// 広告ユニットID（テスト用）
-// 本番環境では実際のAdMob広告ユニットIDに変更してください
-export const AD_UNIT_IDS = {
-  banner: {
-    ios: 'ca-app-pub-3940256099942544/2934735716', // テスト用バナー広告
-    android: 'ca-app-pub-3940256099942544/6300978111', // テスト用バナー広告
-  },
-  interstitial: {
-    ios: 'ca-app-pub-3940256099942544/4411468910', // テスト用インタースティシャル広告
-    android: 'ca-app-pub-3940256099942544/1033173712', // テスト用インタースティシャル広告
-  },
+  ios: 'ca-app-pub-2591881801621460~8400392557', // 本番iOSアプリID
+  android: 'ca-app-pub-2591881801621460~8400392557', // 本番AndroidアプリID（同じIDを使用）
 };
 
 // AdMob初期化（安全化）
@@ -37,17 +24,5 @@ export const initializeAdMob = async () => {
   }
 };
 
-// プラットフォーム別の広告ユニットIDを取得
-export const getAdUnitId = (
-  adType: 'banner' | 'interstitial',
-  platform: 'ios' | 'android'
-) => {
-  return AD_UNIT_IDS[adType][platform];
-};
-
-// 現在のプラットフォームを取得
-export const getCurrentPlatform = (): 'ios' | 'android' => {
-  return Platform.OS as 'ios' | 'android';
-};
-
-import { Platform } from 'react-native';
+// プラットフォーム別の広告ユニットIDを取得（環境に応じて自動切り替え）
+export { getAdUnitId, getCurrentPlatform } from './admob-config';

@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>Polaris ― あなたのお金の羅針盤</string>
+    <string>Tanao</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>polaris</string>
-          <string>com.appsaikou.polaris.finance</string>
+          <string>tanao</string>
+          <string>com.appsaikou.tanao</string>
         </array>
       </dict>
     </array>
@@ -84,7 +84,7 @@
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
     <key>GADApplicationIdentifier</key>
-    <string>ca-app-pub-3940256099942544~1458002511</string>
+    <string>ca-app-pub-2591881801621460~8400392557</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>より関連性の高い広告を表示するために、アプリ使用状況のトラッキングを許可してください。</string>
     <key>SKAdNetworkItems</key>

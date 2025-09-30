@@ -6,7 +6,11 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 import { useSubscription } from '../hooks/useSubscription';
-import { getAdUnitId, getCurrentPlatform } from '../lib/admob';
+import {
+  getAdUnitId,
+  getCurrentPlatform,
+  isAdDisplayEnabled,
+} from '../lib/admob-config';
 
 interface InterstitialAdComponentProps {
   onAdClosed?: () => void;
@@ -136,7 +140,7 @@ export const useInterstitialAd = () => {
 
   // 初期化時に広告を読み込み
   useEffect(() => {
-    if (!subscriptionLoading && !isSubscribed) {
+    if (!subscriptionLoading && !isSubscribed && isAdDisplayEnabled()) {
       console.log('🚀 Loading interstitial ad on mount...');
       loadAd();
     }
@@ -165,6 +169,12 @@ export const useInterstitialAdDisplay = () => {
   const showInterstitialAd = async (
     onAdClosed?: () => void
   ): Promise<boolean> => {
+    // 広告が無効の場合は表示しない
+    if (!isAdDisplayEnabled()) {
+      console.log('📱 広告無効: インタースティシャル広告は表示されません');
+      return false;
+    }
+
     if (!isLoaded) {
       console.log('⚠️ Interstitial ad not loaded yet, loading now...');
       // 広告が読み込まれていない場合は読み込みを試行

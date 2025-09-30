@@ -1,28 +1,29 @@
 {
   "expo": {
-    "name": "Polaris ― あなたのお金の羅針盤",
+    "name": "Tanao",
+    "subtitle": "your asset tracker",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "polaris",
+    "scheme": "tanao",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "description": "Polaris（ポラリス）は、あなたのお金の羅針盤となる資産管理アプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。",
+    "description": "Tanao（タナオ）は、あなたの資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.appsaikou.polaris.finance",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.appsaikou.tanao",
+      "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。",
-        "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
+        "GADApplicationIdentifier": "ca-app-pub-2591881801621460~8400392557"
       }
     },
     "android": {
@@ -30,9 +31,11 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.appsaikou.polaris.finance",
+      "package": "com.appsaikou.tanao",
       "versionCode": 1,
-      "permissions": ["com.google.android.gms.permission.AD_ID"]
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -52,8 +55,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "androidAppId": "ca-app-pub-2591881801621460~8400392557",
+          "iosAppId": "ca-app-pub-2591881801621460~8400392557"
         }
       ],
       [

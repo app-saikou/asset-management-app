@@ -10,26 +10,30 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		3E8ED0249A7FFE2345C4D6C3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7F6B6EEC937083044D9951A3 /* PrivacyInfo.xcprivacy */; };
+		87AB2D478F4196B62B665084 /* libPods-Tanao.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2E037737F301A9704852B9AA /* libPods-Tanao.a */; };
 		9550AABF68214DA233903C3A /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EDEF6D99D7BF5AEC15069B1 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		BDC63E549951777232D9C8F1 /* libPods-Polaris.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F01265E6738187CB26AD2A41 /* libPods-Polaris.a */; };
+		C503F12233201BBF4596DF5D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4E13E7E913927BE5C08920 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* Polaris.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Polaris.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Polaris/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Polaris/Info.plist; sourceTree = "<group>"; };
-		360AFFFDB5B63447337D729A /* Pods-Polaris.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Polaris.release.xcconfig"; path = "Target Support Files/Pods-Polaris/Pods-Polaris.release.xcconfig"; sourceTree = "<group>"; };
-		3EDEF6D99D7BF5AEC15069B1 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Polaris/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		7F6B6EEC937083044D9951A3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Polaris/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Polaris/SplashScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* Tanao.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tanao.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Tanao/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Tanao/Info.plist; sourceTree = "<group>"; };
+		2E037737F301A9704852B9AA /* libPods-Tanao.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Tanao.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		360AFFFDB5B63447337D729A /* Pods-Polaris.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Polaris.release.xcconfig"; path = "Target Support Files/Pods-Tanao/Pods-Polaris.release.xcconfig"; sourceTree = "<group>"; };
+		3EDEF6D99D7BF5AEC15069B1 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Tanao/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		6A7558EA96E213909DBA95E3 /* Pods-Tanao.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Tanao.release.xcconfig"; path = "Target Support Files/Pods-Tanao/Pods-Tanao.release.xcconfig"; sourceTree = "<group>"; };
+		7D4E13E7E913927BE5C08920 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Tanao/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		7F6B6EEC937083044D9951A3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Tanao/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Tanao/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E87C3BD42C5DB96F8B48E98E /* Pods-Polaris.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Polaris.debug.xcconfig"; path = "Target Support Files/Pods-Polaris/Pods-Polaris.debug.xcconfig"; sourceTree = "<group>"; };
+		C0B19FAFB81A9FBB36CF4757 /* Pods-Tanao.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Tanao.debug.xcconfig"; path = "Target Support Files/Pods-Tanao/Pods-Tanao.debug.xcconfig"; sourceTree = "<group>"; };
+		E87C3BD42C5DB96F8B48E98E /* Pods-Polaris.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Polaris.debug.xcconfig"; path = "Target Support Files/Pods-Tanao/Pods-Polaris.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F01265E6738187CB26AD2A41 /* libPods-Polaris.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Polaris.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Polaris/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* Polaris-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Polaris-Bridging-Header.h"; path = "Polaris/Polaris-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Tanao/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* Tanao-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Tanao-Bridging-Header.h"; path = "Tanao/Tanao-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,31 +41,31 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BDC63E549951777232D9C8F1 /* libPods-Polaris.a in Frameworks */,
+				87AB2D478F4196B62B665084 /* libPods-Tanao.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* Polaris */ = {
+		13B07FAE1A68108700A75B9A /* Tanao */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* Polaris-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* Tanao-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				7F6B6EEC937083044D9951A3 /* PrivacyInfo.xcprivacy */,
 			);
-			name = Polaris;
+			name = Tanao;
 			sourceTree = "<group>";
 		};
 		2330EA86ECE1A186EE167399 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				31D0141F11F5FCE975B09FD3 /* Polaris */,
+				31D0141F11F5FCE975B09FD3 /* Tanao */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -70,17 +74,18 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				F01265E6738187CB26AD2A41 /* libPods-Polaris.a */,
+				2E037737F301A9704852B9AA /* libPods-Tanao.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		31D0141F11F5FCE975B09FD3 /* Polaris */ = {
+		31D0141F11F5FCE975B09FD3 /* Tanao */ = {
 			isa = PBXGroup;
 			children = (
 				3EDEF6D99D7BF5AEC15069B1 /* ExpoModulesProvider.swift */,
+				7D4E13E7E913927BE5C08920 /* ExpoModulesProvider.swift */,
 			);
-			name = Polaris;
+			name = Tanao;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -93,7 +98,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* Polaris */,
+				13B07FAE1A68108700A75B9A /* Tanao */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -108,7 +113,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* Polaris.app */,
+				13B07F961A680F5B00A75B9A /* Tanao.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -119,7 +124,7 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = Polaris/Supporting;
+			path = Tanao/Supporting;
 			sourceTree = "<group>";
 		};
 		EA6C8DECFA2ABC2DE4868B75 /* Pods */ = {
@@ -127,17 +132,18 @@
 			children = (
 				E87C3BD42C5DB96F8B48E98E /* Pods-Polaris.debug.xcconfig */,
 				360AFFFDB5B63447337D729A /* Pods-Polaris.release.xcconfig */,
+				C0B19FAFB81A9FBB36CF4757 /* Pods-Tanao.debug.xcconfig */,
+				6A7558EA96E213909DBA95E3 /* Pods-Tanao.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* Polaris */ = {
+		13B07F861A680F5B00A75B9A /* Tanao */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Polaris" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Tanao" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
 				880A6D88BECD62F8D84F16C8 /* [Expo] Configure project */,
@@ -153,9 +159,9 @@
 			);
 			dependencies = (
 			);
-			name = Polaris;
+			name = Tanao;
 			productName = Polaris;
-			productReference = 13B07F961A680F5B00A75B9A /* Polaris.app */;
+			productReference = 13B07F961A680F5B00A75B9A /* Tanao.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -171,7 +177,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Polaris" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Tanao" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -184,7 +190,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* Polaris */,
+				13B07F861A680F5B00A75B9A /* Tanao */,
 			);
 		};
 /* End PBXProject section */
@@ -236,7 +242,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-Polaris-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-Tanao-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -249,7 +255,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Polaris/Pods-Polaris-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Tanao/Pods-Tanao-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
@@ -276,7 +282,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Polaris/Pods-Polaris-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Tanao/Pods-Tanao-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		880A6D88BECD62F8D84F16C8 /* [Expo] Configure project */ = {
@@ -290,18 +296,18 @@
 			inputPaths = (
 				"$(SRCROOT)/.xcode.env",
 				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/Polaris/Polaris.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-Polaris/expo-configure-project.sh",
+				"$(SRCROOT)/Tanao/Tanao.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Tanao/expo-configure-project.sh",
 			);
 			name = "[Expo] Configure project";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-Polaris/ExpoModulesProvider.swift",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Tanao/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Polaris/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Tanao/expo-configure-project.sh\"\n";
 		};
 		BFD97FF11726B1F8FA6ED2EC /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -309,7 +315,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Polaris/Pods-Polaris-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Tanao/Pods-Tanao-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -322,7 +328,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Polaris/Pods-Polaris-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Tanao/Pods-Tanao-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		E734141D8846A23539FD0BE1 /* [CP-User] [RNGoogleMobileAds] Configuration */ = {
@@ -347,6 +353,7 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				9550AABF68214DA233903C3A /* ExpoModulesProvider.swift in Sources */,
+				C503F12233201BBF4596DF5D /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,18 +362,19 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E87C3BD42C5DB96F8B48E98E /* Pods-Polaris.debug.xcconfig */;
+			baseConfigurationReference = C0B19FAFB81A9FBB36CF4757 /* Pods-Tanao.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Polaris/Polaris.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Tanao/Tanao.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = Polaris/Info.plist;
+				INFOPLIST_FILE = Tanao/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Tanao;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -379,9 +387,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.appsaikou.polaris.finance;
-				PRODUCT_NAME = Polaris;
-				SWIFT_OBJC_BRIDGING_HEADER = "Polaris/Polaris-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.appsaikou.tanao;
+				PRODUCT_NAME = Tanao;
+				SWIFT_OBJC_BRIDGING_HEADER = "Tanao/Tanao-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -391,13 +399,14 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 360AFFFDB5B63447337D729A /* Pods-Polaris.release.xcconfig */;
+			baseConfigurationReference = 6A7558EA96E213909DBA95E3 /* Pods-Tanao.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Polaris/Polaris.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Tanao/Tanao.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = Polaris/Info.plist;
+				INFOPLIST_FILE = Tanao/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Tanao;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -410,9 +419,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.appsaikou.polaris.finance;
-				PRODUCT_NAME = Polaris;
-				SWIFT_OBJC_BRIDGING_HEADER = "Polaris/Polaris-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.appsaikou.tanao;
+				PRODUCT_NAME = Tanao;
+				SWIFT_OBJC_BRIDGING_HEADER = "Tanao/Tanao-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -540,7 +549,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Polaris" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Tanao" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -549,7 +558,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Polaris" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Tanao" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
