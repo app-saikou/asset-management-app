@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings (English)
+  Tanao
+
+  Created by Expo on 2024.
+*/
+
+/* Permission descriptions in English */
+"NSCameraUsageDescription" = "This app does not use the camera.";
+"NSMicrophoneUsageDescription" = "This app does not use the microphone.";
+"NSUserTrackingUsageDescription" = "Allow this app to track your activity across other companies' apps and websites for advertising purposes? This information will only be used for ad delivery and will not collect personally identifiable information.";
+
+/* App information in English */
+"CFBundleDisplayName" = "Tanao";
+"CFBundleName" = "Tanao";

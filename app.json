@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tanao",
-    "subtitle": "your asset tracker",
+    "subtitle": "あなたの資産トラッカー",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,6 +14,18 @@
       "backgroundColor": "#ffffff"
     },
     "description": "Tanao（タナオ）は、あなたの資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。",
+    "locales": {
+      "ja": {
+        "name": "Tanao",
+        "subtitle": "あなたの資産トラッカー",
+        "description": "Tanao（タナオ）は、あなたの資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。"
+      },
+      "en": {
+        "name": "Tanao",
+        "subtitle": "Your Asset Tracker",
+        "description": "Tanao is your asset management app that helps you track and grow your wealth. Calculate compound interest to predict your asset value in 10 years and get investment guidance for the future."
+      }
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.appsaikou.tanao",
@@ -23,7 +35,8 @@
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。",
-        "GADApplicationIdentifier": "ca-app-pub-2591881801621460~8400392557"
+        "GADApplicationIdentifier": "ca-app-pub-2591881801621460~8400392557",
+        "CFBundleDevelopmentRegion": "ja"
       }
     },
     "android": {
@@ -33,9 +46,7 @@
       },
       "package": "com.appsaikou.tanao",
       "versionCode": 1,
-      "permissions": [
-        "com.google.android.gms.permission.AD_ID"
-      ]
+      "permissions": ["com.google.android.gms.permission.AD_ID"]
     },
     "web": {
       "bundler": "metro",

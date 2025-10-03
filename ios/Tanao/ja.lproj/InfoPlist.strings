@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings (Japanese)
+  Tanao
+
+  Created by Expo on 2024.
+*/
+
+/* Permission descriptions in Japanese */
+"NSCameraUsageDescription" = "このアプリはカメラを使用しません。";
+"NSMicrophoneUsageDescription" = "このアプリはマイクを使用しません。";
+"NSUserTrackingUsageDescription" = "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。";
+
+/* App information in Japanese */
+"CFBundleDisplayName" = "Tanao";
+"CFBundleName" = "Tanao";
