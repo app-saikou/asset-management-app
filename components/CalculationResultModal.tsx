@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { X, TrendingUp, Lightbulb } from 'lucide-react-native';
+import { X, TrendingUp, Lightbulb, Calendar } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
+import type { MultiYearCalculationResult } from '../types/calculationYears';
 
 interface CalculationResult {
   currentAssets: number;
@@ -21,6 +22,7 @@ interface CalculationResult {
 interface CalculationResultModalProps {
   visible: boolean;
   result: CalculationResult | null;
+  multiYearResult?: MultiYearCalculationResult | null;
   onClose: () => void;
   formatNumber: (num: number) => string;
   onAdjust?: () => void;
@@ -29,6 +31,7 @@ interface CalculationResultModalProps {
 export default function CalculationResultModal({
   visible,
   result,
+  multiYearResult,
   onClose,
   formatNumber,
   onAdjust,
@@ -51,29 +54,62 @@ export default function CalculationResultModal({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.resultCard}>
-            <View style={styles.resultHeader}>
-              <TrendingUp size={24} color={Colors.accent.success[500]} />
-              <Text style={styles.resultTitle}>計算結果</Text>
-            </View>
+          {/* 複数年数の結果表示 */}
+          {multiYearResult && multiYearResult.results.length > 1 ? (
+            <View style={styles.multiYearResults}>
+              <View style={styles.multiYearHeader}>
+                <Calendar size={24} color={Colors.primary[500]} />
+                <Text style={styles.multiYearTitle}>複数年数での計算結果</Text>
+              </View>
 
-            <View style={styles.resultContent}>
-              <Text style={styles.resultText}>
-                {result.years}年後、あなたの資産は
-              </Text>
-              <Text style={styles.resultAmount}>
-                ¥{formatNumber(result.futureValue)}
-              </Text>
-              <Text style={styles.resultSubtext}>になります</Text>
-            </View>
+              {multiYearResult.results.map((yearResult, index) => (
+                <View key={index} style={styles.yearResultCard}>
+                  <View style={styles.yearResultHeader}>
+                    <Text style={styles.yearResultTitle}>
+                      {yearResult.year}年後
+                    </Text>
+                    <Text style={styles.yearResultRate}>
+                      年利 {yearResult.averageRate.toFixed(1)}%
+                    </Text>
+                  </View>
 
-            <View style={styles.increaseContainer}>
-              <Text style={styles.increaseLabel}>増加額</Text>
-              <Text style={styles.increaseValue}>
-                +¥{formatNumber(result.increaseAmount)}
-              </Text>
+                  <View style={styles.yearResultContent}>
+                    <Text style={styles.yearResultAmount}>
+                      ¥{formatNumber(yearResult.futureValue)}
+                    </Text>
+                    <Text style={styles.yearResultIncrease}>
+                      +¥{formatNumber(yearResult.increaseAmount)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
-          </View>
+          ) : (
+            /* 単一年数の結果表示（従来通り） */
+            <View style={styles.resultCard}>
+              <View style={styles.resultHeader}>
+                <TrendingUp size={24} color={Colors.accent.success[500]} />
+                <Text style={styles.resultTitle}>計算結果</Text>
+              </View>
+
+              <View style={styles.resultContent}>
+                <Text style={styles.resultText}>
+                  {result.years}年後、あなたの資産は
+                </Text>
+                <Text style={styles.resultAmount}>
+                  ¥{formatNumber(result.futureValue)}
+                </Text>
+                <Text style={styles.resultSubtext}>になります</Text>
+              </View>
+
+              <View style={styles.increaseContainer}>
+                <Text style={styles.increaseLabel}>増加額</Text>
+                <Text style={styles.increaseValue}>
+                  +¥{formatNumber(result.increaseAmount)}
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.detailsCard}>
             <Text style={styles.detailsTitle}>計算詳細</Text>
@@ -291,5 +327,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.semantic.surface,
+  },
+
+  // 複数年数結果用スタイル
+  multiYearResults: {
+    marginBottom: 20,
+  },
+  multiYearHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  multiYearTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+  },
+  yearResultCard: {
+    backgroundColor: Colors.semantic.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+  },
+  yearResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  yearResultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary[600],
+  },
+  yearResultRate: {
+    fontSize: 14,
+    color: Colors.semantic.text.secondary,
+    backgroundColor: Colors.primary[50],
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  yearResultContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  yearResultAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+  },
+  yearResultIncrease: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.accent.success[600],
   },
 });

@@ -1,24 +1,30 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { PiggyBank, TrendingUp, ArrowRight } from 'lucide-react-native';
+import { Banknote, BarChart3, ArrowRight } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { AssetHistoryDetail } from '../hooks/useAssetHistory';
 
 interface AssetChangeCardProps {
   detail: AssetHistoryDetail;
   formatNumber: (num: number) => string;
+  targetAge: number | null;
+  targetMonth: number | null;
+  targetAgeBalance: number | null; // monthly_asset_projectionsから取得した値（nullの場合はdetail.future_valueを使用）
 }
 
 export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
   detail,
   formatNumber,
+  targetAge,
+  targetMonth,
+  targetAgeBalance,
 }) => {
   // 資産タイプのアイコンを取得
   const getAssetTypeIcon = (type: 'cash' | 'stock') => {
     if (type === 'cash') {
-      return <PiggyBank size={20} color={Colors.accent.success[500]} />;
+      return <Banknote size={20} color={Colors.accent.info[500]} />;
     } else {
-      return <TrendingUp size={20} color={Colors.accent.info[500]} />;
+      return <BarChart3 size={20} color={Colors.accent.info[500]} />;
     }
   };
 
@@ -45,8 +51,7 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
           <View style={styles.assetDetails}>
             <Text style={styles.assetName}>{detail.asset_name}</Text>
             <Text style={styles.assetType}>
-              {getAssetTypeName(detail.asset_type)} (
-              {detail.annual_rate.toFixed(1)}%)
+              {getAssetTypeName(detail.asset_type)}
             </Text>
           </View>
         </View>
@@ -93,12 +98,26 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
 
       {/* 将来価値 */}
       <View style={styles.futureValueContainer}>
-        <Text style={styles.futureValueLabel}>10年後の価値</Text>
+        <Text style={styles.futureValueLabel}>
+          {targetAge !== null && targetMonth !== null
+            ? `${targetAge}歳${
+                targetMonth > 0 ? `${targetMonth}ヶ月` : ''
+              }時点の資産額`
+            : '目標年齢時点の資産額'}
+        </Text>
         <Text style={styles.futureValueAmount}>
-          ¥{formatNumber(detail.future_value)}
+          ¥
+          {formatNumber(
+            targetAgeBalance !== null ? targetAgeBalance : detail.future_value
+          )}
         </Text>
         <Text style={styles.increaseAmount}>
-          +¥{formatNumber(detail.increase_amount)}
+          +¥
+          {formatNumber(
+            (targetAgeBalance !== null
+              ? targetAgeBalance
+              : detail.future_value) - detail.adjusted_amount
+          )}
         </Text>
       </View>
     </View>

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export interface AssetHistoryDetail {
   id: string;
-  asset_id: string;
+  asset_id: string | null;
   asset_name: string;
   asset_type: 'cash' | 'stock';
   original_amount: number;
@@ -23,6 +23,7 @@ export interface AssetHistoryItem {
   future_value: number;
   increase_amount: number;
   created_at: string;
+  projection_run_id?: string | null;
   asset_history_details?: AssetHistoryDetail[];
 }
 
@@ -84,7 +85,9 @@ export const useAssetHistory = () => {
       originalAmount: number;
       adjustedAmount: number;
       annualRate: number;
-    }>
+    }>,
+    projectionRunId?: string | null,
+    assetProjections?: Map<string, number>
   ) => {
     if (!user?.id) return;
 
@@ -102,6 +105,7 @@ export const useAssetHistory = () => {
             years: years,
             future_value: futureValue,
             increase_amount: increaseAmount,
+            projection_run_id: projectionRunId ?? null,
           },
         ])
         .select()
@@ -114,9 +118,9 @@ export const useAssetHistory = () => {
       // 資産詳細データがある場合は保存
       if (assetDetails && assetDetails.length > 0) {
         const detailsToInsert = assetDetails.map((asset) => {
-          const assetFutureValue = Math.round(
-            asset.adjustedAmount * Math.pow(1 + asset.annualRate / 100, years)
-          );
+          const assetFutureValue = assetProjections?.has(asset.id)
+            ? Math.round(assetProjections.get(asset.id)!)
+            : Math.round(asset.adjustedAmount * Math.pow(1 + asset.annualRate / 100, years));
           const assetIncreaseAmount = assetFutureValue - asset.adjustedAmount;
 
           return {
@@ -126,7 +130,7 @@ export const useAssetHistory = () => {
             asset_type: asset.type,
             original_amount: asset.originalAmount,
             adjusted_amount: asset.adjustedAmount,
-            annual_rate: asset.annualRate,
+            annual_rate: asset.annualRate ?? 0, // null/undefinedの場合は0を設定
             future_value: assetFutureValue,
             increase_amount: assetIncreaseAmount,
           };
@@ -142,11 +146,36 @@ export const useAssetHistory = () => {
         }
       }
 
+      if (projectionRunId && historyData?.id) {
+        const [{ error: runLinkError }, { error: historyUpdateError }] =
+          await Promise.all([
+            supabase
+              .from('projection_runs')
+              .update({ history_id: historyData.id })
+              .eq('id', projectionRunId),
+            supabase
+              .from('asset_history')
+              .update({ projection_run_id: projectionRunId })
+              .eq('id', historyData.id),
+          ]);
+
+        if (runLinkError) {
+          console.error('投影ラン更新エラー:', runLinkError);
+        }
+        if (historyUpdateError) {
+          console.error('履歴への投影ラン紐付けエラー:', historyUpdateError);
+        }
+      }
+
       // 履歴を再取得
       await fetchHistory();
+
+      // 保存した履歴のIDを返す
+      return historyData?.id;
     } catch (err: any) {
       console.error('履歴保存エラー:', err);
       setError(err.message || '履歴の保存に失敗しました');
+      return null;
     }
   };
 

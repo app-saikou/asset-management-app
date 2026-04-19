@@ -14,7 +14,8 @@ import { Colors } from '../constants/Colors';
 import { useAssetHistory } from '../hooks/useAssetHistory';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useInterstitialAdDisplay } from './InterstitialAd';
+import { useInterstitialAdContext } from '../contexts/InterstitialAdContext';
+import { useProjection } from '../hooks/useProjection';
 
 interface Asset {
   id: string;
@@ -35,16 +36,31 @@ interface InventoryAdjustmentModalProps {
   onClose: () => void;
   currentAssets: Asset[];
   years?: number;
+  onComplete?: () => void; // 保存完了時のコールバック
+  showInterstitialAd?: (onAdClosed?: () => void) => Promise<boolean>; // 広告表示関数
 }
 
 export const InventoryAdjustmentModal: React.FC<
   InventoryAdjustmentModalProps
-> = ({ visible, onClose, currentAssets, years = 10 }) => {
+> = ({
+  visible,
+  onClose,
+  currentAssets,
+  years = 10,
+  onComplete,
+  showInterstitialAd: showInterstitialAdProp,
+}) => {
   const [adjustedAssets, setAdjustedAssets] = useState<AdjustedAsset[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isAdShowing, setIsAdShowing] = useState(false);
   const { saveHistory } = useAssetHistory();
   const { user } = useAuth();
-  const { showInterstitialAd } = useInterstitialAdDisplay();
+  const { calculateAndSaveProjections } = useProjection();
+  // propsから広告表示関数を使用（提供されていない場合はContextから取得）
+  const { showInterstitialAd: showInterstitialAdContext } =
+    useInterstitialAdContext();
+  const showInterstitialAd =
+    showInterstitialAdProp || showInterstitialAdContext;
 
   // 初期化
   useEffect(() => {
@@ -141,85 +157,169 @@ export const InventoryAdjustmentModal: React.FC<
     };
   };
 
-  // 保存処理
+  // 保存処理（ステップ1: モーダルを閉じてから広告表示）
   const handleSave = async () => {
-    try {
-      const totals = calculateTotals();
+    console.log('🎯 ステップ1: モーダルを閉じてから広告を表示します...');
 
-      // 各資産を並列で更新（データベースのみ）
-      const updatePromises = adjustedAssets
-        .filter((asset) => asset.adjustedAmount !== asset.amount)
-        .map(async (asset) => {
-          const { error } = await supabase
-            .from('multiple_assets')
-            .update({
-              amount: asset.adjustedAmount,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', asset.id)
-            .eq('user_id', user?.id);
+    // ステップ1: モーダルを閉じる
+    onClose();
 
-          if (error) {
-            throw error;
+    // ステップ2: モーダルが完全に閉じるまで待機
+    setTimeout(async () => {
+      try {
+        await showInterstitialAd(async () => {
+          try {
+            // 資産データを更新
+            console.log('📱 Updating assets...');
+            const updatePromises = adjustedAssets
+              .filter((asset) => asset.adjustedAmount !== asset.amount)
+              .map(async (asset) => {
+                const { error } = await supabase
+                  .from('multiple_assets')
+                  .update({
+                    amount: asset.adjustedAmount,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', asset.id)
+                  .eq('user_id', user?.id);
+
+                if (error) {
+                  throw error;
+                }
+              });
+
+            await Promise.all(updatePromises);
+            console.log('✅ 資産データ更新完了');
+
+            // 履歴を保存
+            console.log('📱 Saving history...');
+            const assetDetails = adjustedAssets.map((asset) => ({
+              id: asset.id,
+              name: asset.name,
+              type: asset.type,
+              originalAmount: asset.amount,
+              adjustedAmount: asset.adjustedAmount,
+              annualRate: asset.annual_rate,
+            }));
+
+            const projectionRunId = await calculateAndSaveProjections();
+
+            await saveHistory(
+              totals.adjustedTotal,
+              // 加重平均年利率を計算
+              adjustedAssets.reduce(
+                (sum, asset) => sum + asset.annual_rate * asset.adjustedAmount,
+                0
+              ) / totals.adjustedTotal,
+              years,
+              totals.adjustedFutureValue,
+              assetDetails,
+              projectionRunId ?? undefined
+            );
+            console.log('✅ 履歴保存完了');
+
+            // ステップ5: 完了処理
+            console.log('🎯 ステップ5: 完了処理');
+            if (onComplete) {
+              console.log('📱 Showing results...');
+              onComplete();
+            }
+          } catch (error) {
+            console.error('❌ データ保存エラー:', error);
+            Alert.alert('エラー', 'データの保存に失敗しました。');
           }
         });
+      } catch (error) {
+        console.error('❌ 広告表示エラー:', error);
+        Alert.alert('エラー', '広告の表示に失敗しました。');
+      }
+    }, 300); // モーダルが完全に閉じるまで300ms待機
+  };
 
-      await Promise.all(updatePromises);
-      console.log('✅ 棚卸し調整のDB更新完了');
-
-      // 履歴に保存（調整後の値で、資産詳細も含む）
-      const assetDetails = adjustedAssets.map((asset) => ({
-        id: asset.id,
-        name: asset.name,
-        type: asset.type,
-        originalAmount: asset.amount,
-        adjustedAmount: asset.adjustedAmount,
-        annualRate: asset.annual_rate,
-      }));
-
-      await saveHistory(
-        totals.adjustedTotal,
-        // 加重平均年利率を計算
-        adjustedAssets.reduce(
-          (sum, asset) => sum + asset.annual_rate * asset.adjustedAmount,
-          0
-        ) / totals.adjustedTotal,
-        years,
-        totals.adjustedFutureValue,
-        assetDetails
-      );
-
-      // インタースティシャル広告を表示（保存完了後）
-      try {
-        console.log('🎯 Showing interstitial ad after save...');
-        console.log('📱 Modal state before ad:', { visible: true, hasChanges });
-
-        const adShown = await showInterstitialAd(() => {
-          // 広告が閉じた後に少し遅延してからアラートを表示
-          setTimeout(() => {
-            console.log('📱 Showing completion alert after ad closed...');
-            Alert.alert(
-              '棚卸し完了',
-              `資産が調整されました。\n\n調整前: ${formatAmount(
-                totals.originalTotal
-              )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
-                totals.totalDifference >= 0 ? '+' : ''
-              }${formatAmount(totals.totalDifference)}円`,
-              [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    // モーダルを閉じてから資産を再取得
-                    onClose();
-                  },
-                },
-              ]
-            );
-          }, 500); // 500ms遅延でモーダルの重複を防ぐ
-        });
-
-        // 広告が表示されなかった場合はすぐにアラートを表示
+  // 以下、一旦コメントアウト
+  /*
+        // 広告が表示されなかった場合は直接保存処理を実行
         if (!adShown) {
+          console.log('📱 Ad not shown, saving history directly...');
+          setIsAdShowing(false); // 広告が表示されなかったのでモーダルを再表示
+
+          try {
+            const assetDetails = adjustedAssets.map((asset) => ({
+              id: asset.id,
+              name: asset.name,
+              type: asset.type,
+              originalAmount: asset.amount,
+              adjustedAmount: asset.adjustedAmount,
+              annualRate: asset.annual_rate,
+            }));
+
+            await saveHistory(
+              totals.adjustedTotal,
+              // 加重平均年利率を計算
+              adjustedAssets.reduce(
+                (sum, asset) => sum + asset.annual_rate * asset.adjustedAmount,
+                0
+              ) / totals.adjustedTotal,
+              years,
+              totals.adjustedFutureValue,
+              assetDetails
+            );
+
+            console.log(
+              '📱 History saved successfully, showing completion alert...'
+            );
+
+            setTimeout(() => {
+              Alert.alert(
+                '棚卸し完了',
+                `資産が調整されました。\n\n調整前: ${formatAmount(
+                  totals.originalTotal
+                )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+                  totals.totalDifference >= 0 ? '+' : ''
+                }${formatAmount(totals.totalDifference)}円`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // モーダルを閉じてから資産を再取得
+                      onClose();
+                    },
+                  },
+                ]
+              );
+            }, 100);
+          } catch (saveError) {
+            console.error('📱 Error saving history:', saveError);
+            Alert.alert('エラー', '履歴の保存に失敗しました。');
+          }
+        }
+      } catch (error) {
+        console.log('インタースティシャル広告表示エラー:', error);
+        setIsAdShowing(false); // エラー時はモーダルを再表示
+
+        // 広告エラーでも保存処理を実行
+        try {
+          const assetDetails = adjustedAssets.map((asset) => ({
+            id: asset.id,
+            name: asset.name,
+            type: asset.type,
+            originalAmount: asset.amount,
+            adjustedAmount: asset.adjustedAmount,
+            annualRate: asset.annual_rate,
+          }));
+
+          await saveHistory(
+            totals.adjustedTotal,
+            // 加重平均年利率を計算
+            adjustedAssets.reduce(
+              (sum, asset) => sum + asset.annual_rate * asset.adjustedAmount,
+              0
+            ) / totals.adjustedTotal,
+            years,
+            totals.adjustedFutureValue,
+            assetDetails
+          );
+
           Alert.alert(
             '棚卸し完了',
             `資産が調整されました。\n\n調整前: ${formatAmount(
@@ -237,33 +337,7 @@ export const InventoryAdjustmentModal: React.FC<
               },
             ]
           );
-        }
-      } catch (error) {
-        console.log('インタースティシャル広告表示エラー:', error);
-        // 広告エラーでもアラートを表示
-        Alert.alert(
-          '棚卸し完了',
-          `資産が調整されました。\n\n調整前: ${formatAmount(
-            totals.originalTotal
-          )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
-            totals.totalDifference >= 0 ? '+' : ''
-          }${formatAmount(totals.totalDifference)}円`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // モーダルを閉じてから資産を再取得
-                onClose();
-              },
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('棚卸し保存エラー:', error);
-      Alert.alert('エラー', '棚卸しの保存に失敗しました。');
-    }
-  };
+  */
 
   // キャンセル処理
   const handleCancel = () => {
@@ -285,7 +359,7 @@ export const InventoryAdjustmentModal: React.FC<
 
   return (
     <Modal
-      visible={visible}
+      visible={visible && !isAdShowing}
       animationType="slide"
       presentationStyle="pageSheet"
     >
@@ -295,7 +369,7 @@ export const InventoryAdjustmentModal: React.FC<
           <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
             <X size={24} color={Colors.semantic.text.secondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>資産棚卸し</Text>
+          <Text style={styles.title}>資産を更新</Text>
           <View style={styles.headerSpacer} />
         </View>
 

@@ -15,13 +15,16 @@ import {
 import {
   X,
   DollarSign,
-  TrendingUp,
+  BarChart3,
   Building2,
-  PiggyBank,
+  Banknote,
   Lightbulb,
+  Crown,
+  Info,
 } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
-import { AssetType } from '../hooks/useMultipleAssets';
+import { AssetType, Asset } from '../hooks/useMultipleAssets';
+import { useSubscription, useInterestRates } from '../hooks/useSubscription';
 
 interface AddAssetModalProps {
   visible: boolean;
@@ -33,6 +36,12 @@ interface AddAssetModalProps {
     annualRate: number,
     memo?: string
   ) => Promise<void>;
+  onUpdate?: (
+    id: string,
+    updates: { name: string; amount: number; annual_rate: number; memo?: string }
+  ) => Promise<void>;
+  initialAsset?: Asset;
+  onShowSubscriptionModal?: () => void;
 }
 
 interface AssetTypeOption {
@@ -48,7 +57,14 @@ export default function AddAssetModal({
   visible,
   onClose,
   onSave,
+  onUpdate,
+  initialAsset,
+  onShowSubscriptionModal,
 }: AddAssetModalProps) {
+  const { canCustomizeRates } = useSubscription();
+  const { rates } = useInterestRates();
+  const isEditMode = !!initialAsset;
+
   const [selectedType, setSelectedType] = useState<AssetType | null>(null);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -62,15 +78,15 @@ export default function AddAssetModal({
   const assetTypes: AssetTypeOption[] = [
     {
       type: 'cash',
-      icon: <PiggyBank size={32} color={Colors.accent.success[500]} />,
+      icon: <Banknote size={32} color={Colors.accent.info[500]} />,
       title: '現金・預金',
       description: '銀行預金、現金、定期預金など',
-      color: Colors.accent.success[50],
+      color: Colors.accent.info[50],
       examples: ['普通預金', '定期預金', '手持ち現金', '当座預金'],
     },
     {
       type: 'stock',
-      icon: <TrendingUp size={32} color={Colors.accent.info[500]} />,
+      icon: <BarChart3 size={32} color={Colors.accent.info[500]} />,
       title: '株式・投資',
       description: '個別株式、ETF、投資信託など',
       color: Colors.accent.info[50],
@@ -80,6 +96,14 @@ export default function AddAssetModal({
 
   useEffect(() => {
     if (visible) {
+      // 編集モードの場合は既存データをフォームに反映
+      if (initialAsset) {
+        setSelectedType(initialAsset.type);
+        setName(initialAsset.name);
+        setAmount(formatAmount(String(initialAsset.amount)));
+        setAnnualRate(String(initialAsset.annual_rate));
+        setMemo(initialAsset.memo || '');
+      }
       Animated.timing(slideAnim, {
         toValue: 1,
         duration: 300,
@@ -92,7 +116,7 @@ export default function AddAssetModal({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible]);
+  }, [visible, initialAsset]);
 
   const resetForm = () => {
     setSelectedType(null);
@@ -155,13 +179,22 @@ export default function AddAssetModal({
 
     setSaving(true);
     try {
-      await onSave(
-        selectedType!,
-        name.trim(),
-        parseAmountToNumber(amount),
-        parseFloat(annualRate),
-        memo.trim() || undefined
-      );
+      if (isEditMode && onUpdate && initialAsset) {
+        await onUpdate(initialAsset.id, {
+          name: name.trim(),
+          amount: parseAmountToNumber(amount),
+          annual_rate: parseFloat(annualRate),
+          memo: memo.trim() || undefined,
+        });
+      } else {
+        await onSave(
+          selectedType!,
+          name.trim(),
+          parseAmountToNumber(amount),
+          parseFloat(annualRate),
+          memo.trim() || undefined
+        );
+      }
       handleClose();
     } catch (error) {
       console.error('資産保存エラー:', error);
@@ -197,7 +230,7 @@ export default function AddAssetModal({
 
   const getDefaultRateForType = (type: AssetType | null) => {
     if (!type) return '';
-    return type === 'cash' ? '0.001' : '5';
+    return rates[type].toString();
   };
 
   const selectAssetType = (type: AssetType) => {
@@ -235,7 +268,9 @@ export default function AddAssetModal({
         >
           {/* ヘッダー */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>新しい資産を追加</Text>
+            <Text style={styles.headerTitle}>
+              {isEditMode ? '資産を編集' : '新しい資産を追加'}
+            </Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <X size={24} color={Colors.semantic.text.primary} />
             </TouchableOpacity>
@@ -246,33 +281,35 @@ export default function AddAssetModal({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* 資産種別選択 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>資産の種類</Text>
-              <View style={styles.typeGrid}>
-                {assetTypes.map((option) => (
-                  <TouchableOpacity
-                    key={option.type}
-                    style={[
-                      styles.typeCard,
-                      { backgroundColor: option.color },
-                      selectedType === option.type && styles.typeCardSelected,
-                    ]}
-                    onPress={() => selectAssetType(option.type)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.typeIcon}>{option.icon}</View>
-                    <Text style={styles.typeTitle}>{option.title}</Text>
-                    <Text style={styles.typeDescription}>
-                      {option.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            {/* 資産種別選択（編集モードでは非表示） */}
+            {!isEditMode && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>資産の種類</Text>
+                <View style={styles.typeGrid}>
+                  {assetTypes.map((option) => (
+                    <TouchableOpacity
+                      key={option.type}
+                      style={[
+                        styles.typeCard,
+                        { backgroundColor: option.color },
+                        selectedType === option.type && styles.typeCardSelected,
+                      ]}
+                      onPress={() => selectAssetType(option.type)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.typeIcon}>{option.icon}</View>
+                      <Text style={styles.typeTitle}>{option.title}</Text>
+                      <Text style={styles.typeDescription}>
+                        {option.description}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {errors.type && (
+                  <Text style={styles.errorText}>{errors.type}</Text>
+                )}
               </View>
-              {errors.type && (
-                <Text style={styles.errorText}>{errors.type}</Text>
-              )}
-            </View>
+            )}
 
             {selectedType && (
               <>
@@ -349,21 +386,53 @@ export default function AddAssetModal({
                   </View>
 
                   <View style={[styles.section, styles.halfWidth]}>
-                    <Text style={styles.sectionTitle}>年利</Text>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.sectionTitle}>年利</Text>
+                      {!canCustomizeRates && (
+                        <TouchableOpacity
+                          style={styles.proBadge}
+                          onPress={() => {
+                            console.log('Proバッジがタップされました');
+                            if (onShowSubscriptionModal) {
+                              console.log(
+                                'onShowSubscriptionModalを呼び出します'
+                              );
+                              onShowSubscriptionModal();
+                            } else {
+                              console.log(
+                                'onShowSubscriptionModalが未定義です'
+                              );
+                            }
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Crown size={12} color={Colors.primary[500]} />
+                          <Text style={styles.proText}>Proでカスタマイズ</Text>
+                          <Info size={12} color={Colors.primary[500]} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                     <View
                       style={[
                         styles.inputContainer,
                         errors.annualRate && styles.inputError,
+                        !canCustomizeRates && styles.disabledInput,
                       ]}
                     >
                       <TextInput
-                        style={styles.input}
+                        style={[
+                          styles.input,
+                          !canCustomizeRates && styles.disabledInputText,
+                        ]}
                         placeholder="5.0"
                         placeholderTextColor={Colors.semantic.text.tertiary}
                         value={annualRate}
-                        onChangeText={setAnnualRate}
+                        onChangeText={
+                          canCustomizeRates ? setAnnualRate : undefined
+                        }
                         keyboardType="decimal-pad"
                         enablesReturnKeyAutomatically={false}
+                        editable={canCustomizeRates}
                       />
                       <Text style={styles.percentSymbol}>%</Text>
                     </View>
@@ -420,15 +489,15 @@ export default function AddAssetModal({
                 (!selectedType || saving) && styles.saveButtonDisabled,
               ]}
               onPress={handleSave}
-              disabled={!selectedType || saving}
+              disabled={(!isEditMode && !selectedType) || saving}
             >
               <Text
                 style={[
                   styles.saveButtonText,
-                  (!selectedType || saving) && styles.saveButtonTextDisabled,
+                  ((!isEditMode && !selectedType) || saving) && styles.saveButtonTextDisabled,
                 ]}
               >
-                {saving ? '保存中...' : '保存'}
+                {saving ? '保存中...' : isEditMode ? '更新' : '保存'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -626,5 +695,35 @@ const styles = StyleSheet.create({
   },
   saveButtonTextDisabled: {
     color: Colors.semantic.text.tertiary,
+  },
+  disabledInput: {
+    backgroundColor: Colors.semantic.surface.secondary,
+    borderColor: Colors.semantic.border,
+  },
+  disabledInputText: {
+    color: Colors.semantic.text.tertiary,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+  },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Colors.primary[50],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+    marginBottom: 12,
+  },
+  proText: {
+    fontSize: 10,
+    color: Colors.primary[500],
+    fontWeight: '600',
   },
 });

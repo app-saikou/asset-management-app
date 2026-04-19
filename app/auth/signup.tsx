@@ -5,20 +5,23 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { useUserProfile } from '../../hooks/useAgeBasedCalculation';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import { Mail, Lock } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { translateErrorMessage } from '../../utils/errorTranslations';
 import Toast from '../../components/Toast';
 
 export default function SignupScreen() {
+  const params = useLocalSearchParams();
+  const isFromOnboarding = params.fromOnboarding === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -27,13 +30,27 @@ export default function SignupScreen() {
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [showToast, setShowToast] = useState(false);
   const { signUp, user, loading: authLoading } = useAuth();
+  const { isLoading: profileLoading } = useUserProfile();
+  const { isNewUser } = useOnboarding();
 
-  // ユーザーがログインした場合、自動的にホーム画面に遷移
+  // ユーザーがサインアップ完了した場合の遷移処理
   React.useEffect(() => {
-    if (!authLoading && user) {
-      router.replace('/(tabs)');
+    if (!authLoading && !profileLoading && user && !user.is_anonymous) {
+      // 匿名ユーザーから通常ユーザーに変換された場合、または通常ユーザーの新規作成の場合
+      if (isNewUser()) {
+        // オンボーディング未完了 → オンボーディング画面
+        router.replace('/onboarding');
+      } else {
+        // オンボーディング完了 → ホーム画面
+        // オンボーディング完了画面から来た場合は通知許可モーダルを表示
+        if (isFromOnboarding) {
+          router.replace('/(tabs)?showNotificationModal=true');
+        } else {
+          router.replace('/(tabs)/home');
+        }
+      }
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, profileLoading, isNewUser, isFromOnboarding]);
 
   const showToastMessage = (message: string, type: 'success' | 'error') => {
     setToastMessage(message);
@@ -65,7 +82,12 @@ export default function SignupScreen() {
       showToastMessage(translateErrorMessage(error.message), 'error');
     } else {
       setLoading(false);
-      showToastMessage('アカウントが作成されました', 'success');
+      showToastMessage(
+        user?.is_anonymous === true
+          ? 'アカウント登録が完了しました'
+          : 'アカウントが作成されました',
+        'success'
+      );
 
       // AuthContextのuserが更新されるまで待つ
       // router.replaceはuseEffectで自動的に処理される
@@ -79,7 +101,9 @@ export default function SignupScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>アカウント作成</Text>
             <Text style={styles.subtitle}>
-              新しいアカウントを作成してください
+              {user?.is_anonymous === true
+                ? 'メールアドレスとパスワードを設定して\nアカウントを登録しましょう'
+                : '新しいアカウントを作成してください'}
             </Text>
           </View>
 
@@ -153,27 +177,27 @@ export default function SignupScreen() {
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <>
-                  <Text style={styles.buttonText}>アカウント作成</Text>
-                  <ArrowRight
-                    size={18}
-                    color="#FFFFFF"
-                    style={styles.buttonIcon}
-                  />
-                </>
+                <Text style={styles.buttonText}>アカウント作成</Text>
               )}
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            {/* オンボーディング完了画面から来た場合はログインリンクを非表示 */}
+            {!isFromOnboarding && (
+              <>
+                <View style={styles.divider} />
 
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>既にアカウントをお持ちの方は</Text>
-              <Link href="/auth/login" asChild>
-                <TouchableOpacity style={styles.loginButton}>
-                  <Text style={styles.loginLink}>ログイン</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>
+                    既にアカウントをお持ちの方は
+                  </Text>
+                  <Link href="/auth/login" asChild>
+                    <TouchableOpacity style={styles.loginButton}>
+                      <Text style={styles.loginLink}>ログイン</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </TouchableWithoutFeedback>

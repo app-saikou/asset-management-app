@@ -4,42 +4,47 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
+  SectionList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import {
-  Calendar,
   TrendingUp,
-  ChevronDown,
   ChevronRight,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react-native';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { Colors } from '../../constants/Colors';
 import { useAssetHistory, AssetHistoryItem } from '../../hooks/useAssetHistory';
 
 export default function HistoryScreen() {
-  const { groupedHistory, loading, error, formatNumber, fetchHistory } =
+  const { history, loading, error, formatNumber, fetchHistory } =
     useAssetHistory();
-  const [expandedGroups, setExpandedGroups] = React.useState<{
-    [key: string]: boolean;
-  }>({});
+
+  const sections = React.useMemo(() => {
+    const grouped = history.reduce((acc, item) => {
+      const date = new Date(item.created_at);
+      const key = format(date, 'yyyy年M月', { locale: ja });
+      const existing = acc.find((s) => s.title === key);
+      if (existing) {
+        existing.data.push(item);
+      } else {
+        acc.push({ title: key, data: [item] });
+      }
+      return acc;
+    }, [] as { title: string; data: AssetHistoryItem[] }[]);
+    return grouped;
+  }, [history]);
 
   // 画面フォーカス時に履歴を再取得
   useFocusEffect(
     React.useCallback(() => {
-      console.log('📊 履歴画面フォーカス - データを再取得');
       fetchHistory();
     }, [fetchHistory])
   );
-
-  // グループの展開/折りたたみ
-  const toggleGroup = (groupKey: string) => {
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [groupKey]: !prev[groupKey],
-    }));
-  };
 
   // 履歴詳細画面へ遷移
   const navigateToDetail = (item: AssetHistoryItem) => {
@@ -48,23 +53,12 @@ export default function HistoryScreen() {
       params: {
         id: item.id,
         currentAssets: item.current_assets.toString(),
-        annualRate: item.annual_rate.toString(),
         years: item.years.toString(),
         futureValue: item.future_value.toString(),
         increaseAmount: item.increase_amount.toString(),
         createdAt: item.created_at,
       },
     });
-  };
-
-  // 日付フォーマット
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month}/${day} ${hours}:${minutes}`;
   };
 
   if (loading) {
@@ -91,16 +85,14 @@ export default function HistoryScreen() {
     );
   }
 
-  const groupKeys = Object.keys(groupedHistory);
-
-  if (groupKeys.length === 0) {
+  if (history.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyContainer}>
           <TrendingUp size={48} color={Colors.semantic.text.tertiary} />
           <Text style={styles.emptyText}>まだ履歴がありません</Text>
           <Text style={styles.emptySubtext}>
-            資産計算を実行すると履歴が保存されます
+            「資産を更新」を実行すると履歴が保存されます
           </Text>
         </View>
       </SafeAreaView>
@@ -109,80 +101,91 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        style={styles.scrollView}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>履歴</Text>
+      </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled={true}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-      >
-        {groupKeys.map((groupKey) => {
-          const items = groupedHistory[groupKey];
-          const isExpanded = expandedGroups[groupKey] !== false; // デフォルトで展開
-
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{title}</Text>
+          </View>
+        )}
+        renderItem={({ item }) => {
+          const date = new Date(item.created_at);
           return (
-            <View key={groupKey} style={styles.groupContainer}>
+            <View style={styles.itemContainer}>
+              <View style={styles.itemHeaderRow}>
+                <Text style={styles.itemDateText}>
+                  {format(date, 'M月d日', { locale: ja })}
+                </Text>
+                <Text style={styles.itemTimeText}>
+                  {format(date, 'H:mm', { locale: ja })}
+                </Text>
+              </View>
               <TouchableOpacity
-                style={styles.groupHeader}
-                onPress={() => toggleGroup(groupKey)}
+                style={styles.card}
+                onPress={() => navigateToDetail(item)}
                 activeOpacity={0.7}
               >
-                <View style={styles.groupTitleContainer}>
-                  <Calendar size={20} color={Colors.semantic.text.secondary} />
-                  <Text style={styles.groupTitle}>{groupKey}</Text>
-                  <Text style={styles.groupCount}>({items.length}件)</Text>
+                <View style={styles.itemLeft}>
+                  <View style={styles.assetRow}>
+                    <Text style={styles.assetLabel}>総資産</Text>
+                    <Text style={styles.assetValue}>
+                      ¥{formatNumber(item.current_assets)}
+                    </Text>
+                  </View>
                 </View>
-                {isExpanded ? (
-                  <ChevronDown
-                    size={20}
-                    color={Colors.semantic.text.secondary}
-                  />
-                ) : (
-                  <ChevronRight
-                    size={20}
-                    color={Colors.semantic.text.secondary}
-                  />
-                )}
-              </TouchableOpacity>
 
-              {isExpanded && (
-                <View style={styles.groupContent}>
-                  {items.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.historyItem}
-                      onPress={() => navigateToDetail(item)}
-                      activeOpacity={0.7}
+                <View style={styles.itemRight}>
+                  <View style={styles.futureContainer}>
+                    <Text style={styles.futureLabel}>将来資産</Text>
+                    <Text style={styles.futureValue}>
+                      ¥{formatNumber(item.future_value)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.diffBadge,
+                      item.increase_amount >= 0
+                        ? styles.diffPositive
+                        : styles.diffNegative,
+                    ]}
+                  >
+                    {item.increase_amount >= 0 ? (
+                      <ArrowUpRight
+                        size={14}
+                        color={Colors.accent.success[700]}
+                      />
+                    ) : (
+                      <ArrowDownRight
+                        size={14}
+                        color={Colors.accent.error[700]}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.diffText,
+                        item.increase_amount >= 0
+                          ? styles.textPositive
+                          : styles.textNegative,
+                      ]}
                     >
-                      <View style={styles.historyHeader}>
-                        <Text style={styles.historyDate}>
-                          {formatDate(item.created_at)}
-                        </Text>
-                        <TrendingUp
-                          size={16}
-                          color={Colors.accent.success[500]}
-                        />
-                      </View>
-
-                      <View style={styles.historyContent}>
-                        <Text style={styles.historyAmount}>
-                          ¥{formatNumber(item.current_assets)} → ¥
-                          {formatNumber(item.future_value)}
-                        </Text>
-                        <Text style={styles.historyDetails}>
-                          平均年利: {item.annual_rate.toFixed(1)}% | 期間:{' '}
-                          {item.years}年
-                        </Text>
-                        <Text style={styles.historyIncrease}>
-                          増加: +¥{formatNumber(item.increase_amount)}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                      ¥{formatNumber(Math.abs(item.increase_amount))}
+                    </Text>
+                  </View>
                 </View>
-              )}
+                <ChevronRight size={20} color={Colors.semantic.text.tertiary} />
+              </TouchableOpacity>
             </View>
           );
-        })}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+        }}
+        ListFooterComponent={<View style={styles.bottomPadding} />}
+      />
     </SafeAreaView>
   );
 }
@@ -191,6 +194,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.semantic.background,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.semantic.border,
+    backgroundColor: Colors.semantic.background,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -231,76 +246,117 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.secondary,
     textAlign: 'center',
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
+  listContent: {
+    paddingBottom: 20,
   },
-  groupContainer: {
-    marginBottom: 24,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: Colors.semantic.surface,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  groupTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  groupTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.semantic.text.primary,
-    marginLeft: 8,
-  },
-  groupCount: {
-    fontSize: 14,
-    color: Colors.semantic.text.secondary,
-    marginLeft: 8,
-  },
-  groupContent: {
+  sectionHeader: {
     backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    overflow: 'hidden',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
-  historyItem: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.semantic.border,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  historyDate: {
-    fontSize: 14,
-    color: Colors.semantic.text.secondary,
-    fontWeight: '500',
-  },
-  historyContent: {
-    gap: 6,
-  },
-  historyAmount: {
-    fontSize: 18,
+  sectionHeaderText: {
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.semantic.text.primary,
   },
-  historyDetails: {
+  itemContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  itemHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  itemDateText: {
     fontSize: 14,
+    fontWeight: '600',
     color: Colors.semantic.text.secondary,
   },
-  historyIncrease: {
-    fontSize: 16,
+  itemTimeText: {
+    fontSize: 12,
+    color: Colors.semantic.text.tertiary,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+    shadowColor: Colors.base.gray900,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  itemLeft: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 4,
+  },
+  assetRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  assetLabel: {
+    fontSize: 11,
+    color: Colors.semantic.text.tertiary,
+    fontWeight: '500',
+  },
+  assetValue: {
+    fontSize: 20, // 18 -> 20
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    letterSpacing: -0.5,
+  },
+  itemRight: {
+    alignItems: 'flex-end',
+    marginRight: 12,
+    gap: 6,
+  },
+  diffBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 2,
+  },
+  diffPositive: {
+    backgroundColor: Colors.accent.success[50],
+  },
+  diffNegative: {
+    backgroundColor: Colors.accent.error[50],
+  },
+  diffText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  textPositive: {
+    color: Colors.accent.success[700],
+  },
+  textNegative: {
+    color: Colors.accent.error[700],
+  },
+  futureContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  futureLabel: {
+    fontSize: 11,
+    color: Colors.semantic.text.tertiary,
+  },
+  futureValue: {
+    fontSize: 13,
     fontWeight: '600',
-    color: Colors.accent.success[600],
+    color: Colors.semantic.text.secondary,
   },
   bottomPadding: {
     height: 40,

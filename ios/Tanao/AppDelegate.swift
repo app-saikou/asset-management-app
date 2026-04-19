@@ -1,7 +1,6 @@
 import Expo
 import React
 import ReactAppDependencyProvider
-import GoogleMobileAds
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -14,9 +13,6 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    // AdMob初期化（一時的に無効化）
-    // GADMobileAds.sharedInstance().start(completionHandler: nil)
-    
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

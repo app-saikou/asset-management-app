@@ -1,5 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from 'react-native';
 import { Calculator } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 
@@ -14,59 +20,122 @@ export default function InventoryButton({
   disabled = false,
   loading = false,
 }: InventoryButtonProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // エントランスアニメーション
+    const entranceAnim = Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.8,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 100,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    entranceAnim.start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 100,
+      friction: 3,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePress = () => {
+    // 画面遷移などでアニメーションがキャンセルされないよう、少し遅延させて実行
+    setTimeout(() => {
+      onPress();
+    }, 100);
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.button, disabled && styles.buttonDisabled]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
     >
-      <View style={styles.content}>
-        <Calculator
-          size={20}
-          color={
-            disabled ? Colors.semantic.text.tertiary : Colors.semantic.surface
-          }
-        />
-        <Text style={[styles.text, disabled && styles.textDisabled]}>
-          {loading ? '計算中...' : '棚卸し計算'}
+      <TouchableOpacity
+        style={[styles.button, disabled && styles.buttonDisabled]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || loading}
+        activeOpacity={0.9}
+      >
+        <View style={styles.iconContainer}>
+          <Calculator
+            size={28}
+            color={
+              disabled ? Colors.semantic.text.tertiary : Colors.semantic.surface
+            }
+            strokeWidth={2.5}
+          />
+        </View>
+        <Text style={[styles.label, disabled && styles.labelDisabled]}>
+          {loading ? '計算中...' : '資産を更新'}
         </Text>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: Colors.semantic.button.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  container: {
     shadowColor: Colors.semantic.text.primary,
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 8,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.semantic.button.primary,
+    borderRadius: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    width: 156,
+    gap: 8,
   },
   buttonDisabled: {
     backgroundColor: Colors.semantic.border,
   },
-  content: {
-    flexDirection: 'row',
+  iconContainer: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  text: {
+  label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.semantic.surface,
+    letterSpacing: 0.5,
   },
-  textDisabled: {
+  labelDisabled: {
     color: Colors.semantic.text.tertiary,
   },
 });

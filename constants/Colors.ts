@@ -17,17 +17,18 @@ export const Colors = {
   },
 
   // アクセント色 (25%) - ブランドカラー、ナビゲーション
+  // Tanao: モノクローム（黒・グレー）基調に変更
   primary: {
-    50: '#F0F9FF',
-    100: '#E0F2FE',
-    200: '#BAE6FD',
-    300: '#7DD3FC',
-    400: '#38BDF8',
-    500: '#0EA5E9', // メインのブランドカラー
-    600: '#0284C7',
-    700: '#0369A1',
-    800: '#075985',
-    900: '#0C4A6E',
+    50: '#F9FAFB', // gray50
+    100: '#F3F4F6', // gray100
+    200: '#E5E7EB', // gray200
+    300: '#D1D5DB', // gray300
+    400: '#9CA3AF', // gray400
+    500: '#111827', // gray900 (メイン: ほぼ黒)
+    600: '#000000', // black (強調: 完全な黒)
+    700: '#1F2937', // gray800
+    800: '#374151', // gray700
+    900: '#4B5563', // gray600
   },
 
   // 強調色 (5%) - CTA、エラー、成功など
@@ -61,11 +62,11 @@ export const Colors = {
 
     // 情報
     info: {
-      50: '#EFF6FF',
-      100: '#DBEAFE',
-      500: '#3B82F6',
-      600: '#2563EB',
-      700: '#1D4ED8',
+      50: '#F3F4F6', // gray100
+      100: '#E5E7EB', // gray200
+      500: '#111827', // gray900
+      600: '#000000', // black
+      700: '#1F2937', // gray800
     },
   },
 
@@ -81,8 +82,8 @@ export const Colors = {
       inverse: '#FFFFFF',
     },
     button: {
-      primary: '#0EA5E9',
-      primaryHover: '#0284C7',
+      primary: '#111827', // 黒に近いグレー
+      primaryHover: '#000000', // 黒
       secondary: '#F3F4F6',
       secondaryHover: '#E5E7EB',
     },

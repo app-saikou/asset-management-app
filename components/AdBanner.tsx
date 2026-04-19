@@ -19,7 +19,6 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   // 30秒間隔でバナー広告を自動更新
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('🔄 バナー広告を自動更新中...');
       setRefreshKey((prev) => prev + 1);
     }, 30000); // 30秒間隔
 

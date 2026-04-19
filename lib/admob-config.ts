@@ -55,9 +55,6 @@ export const getAdUnitId = (
     ? PRODUCTION_AD_UNIT_IDS
     : TEST_AD_UNIT_IDS;
 
-  console.log(
-    `📱 広告ID使用: ${useProductionIds ? '本番' : 'テスト'} (${adType})`
-  );
   return adUnitIds[adType][platform];
 };
 

@@ -25,9 +25,7 @@ export const useInterstitialAd = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [onAdClosedCallback, setOnAdClosedCallback] = useState<
-    (() => void) | null
-  >(null);
+  const onClosedCallbackRef = useRef<(() => void) | null>(null);
 
   // 広告を読み込み
   const loadAd = async () => {
@@ -62,28 +60,27 @@ export const useInterstitialAd = () => {
         }
       );
 
+      // CLOSEDイベントリスナーを設定（Refのコールバックを呼び出す）
       const unsubscribeClosed = ad.addAdEventListener(
         AdEventType.CLOSED,
         () => {
-          console.log('📱 Interstitial ad closed');
-          setIsLoaded(false);
+          console.log('📱 Interstitial ad closed - CLOSED event triggered');
 
-          // 広告が閉じた時のコールバックを実行
-          if (onAdClosedCallback) {
+          // Refに保存されたコールバックを実行
+          if (onClosedCallbackRef.current) {
             console.log('📱 Executing ad closed callback...');
             try {
-              onAdClosedCallback();
+              onClosedCallbackRef.current();
+              console.log('📱 Ad closed callback executed successfully');
             } catch (error) {
               console.error('❌ Error executing ad closed callback:', error);
-            } finally {
-              setOnAdClosedCallback(null); // コールバックをクリア
             }
+            // コールバックをクリア
+            onClosedCallbackRef.current = null;
           }
 
-          // 広告インスタンスは保持して、次の広告を読み込み
-          // setInterstitialAd(null); // この行を削除
-          // 自動再読み込みは無効化（手動で読み込みが必要）
-          // loadAd(); // この行をコメントアウト
+          // コールバック実行後にisLoadedをfalseにする
+          setIsLoaded(false);
         }
       );
 
@@ -94,6 +91,21 @@ export const useInterstitialAd = () => {
           setError(error.message || 'Ad failed to load');
           setIsLoaded(false);
           setIsAdLoading(false);
+        }
+      );
+
+      // 追加のイベントリスナー
+      const unsubscribeOpened = ad.addAdEventListener(
+        AdEventType.OPENED,
+        () => {
+          console.log('📱 Interstitial ad opened - OPENED event triggered');
+        }
+      );
+
+      const unsubscribeClicked = ad.addAdEventListener(
+        AdEventType.CLICKED,
+        () => {
+          console.log('📱 Interstitial ad clicked - CLICKED event triggered');
         }
       );
 
@@ -124,16 +136,22 @@ export const useInterstitialAd = () => {
     try {
       console.log('📱 Showing interstitial ad...');
 
-      // コールバックを設定
+      // コールバックをRefに保存
       if (onClosed) {
-        setOnAdClosedCallback(() => onClosed);
+        console.log('📱 Storing callback in ref');
+        onClosedCallbackRef.current = onClosed;
       }
 
-      await interstitialAd.show();
+      // 広告を表示
+      interstitialAd.show();
+      console.log('📱 Interstitial ad show() called');
+      console.log('📱 Waiting for CLOSED event...');
+
       return true;
     } catch (error) {
       console.error('❌ Interstitial ad show error:', error);
-      setOnAdClosedCallback(null); // エラー時はコールバックをクリア
+      // エラー時はコールバックをクリア
+      onClosedCallbackRef.current = null;
       return false;
     }
   };
@@ -187,13 +205,13 @@ export const useInterstitialAdDisplay = () => {
     // 広告を表示（コールバックを直接渡す）
     const result = await showAd(onAdClosed);
 
-    // 広告表示後、次の広告を読み込み
-    if (result) {
-      console.log('📱 Loading next ad after showing current one...');
-      setTimeout(() => {
-        loadAd();
-      }, 1000);
-    }
+    // 広告表示後、次の広告は読み込まない（CLOSEDイベント後に読み込む）
+    // if (result) {
+    //   console.log('📱 Loading next ad after showing current one...');
+    //   setTimeout(() => {
+    //     loadAd();
+    //   }, 1000);
+    // }
 
     return result;
   };

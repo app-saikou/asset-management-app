@@ -11,14 +11,16 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { Mail, Lock, ArrowLeft } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { translateErrorMessage } from '../../utils/errorTranslations';
 import Toast from '../../components/Toast';
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams();
+  const isFromWelcome = params.fromWelcome === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,10 +28,16 @@ export default function LoginScreen() {
   const [showToast, setShowToast] = useState(false);
   const { signIn, user, loading: authLoading } = useAuth();
 
-  // ユーザーがログインした場合、自動的にホーム画面に遷移
+  // ユーザーがログインした場合の遷移処理
   React.useEffect(() => {
     if (!authLoading && user) {
-      router.replace('/(tabs)');
+      if (user.is_anonymous === true) {
+        // 匿名ユーザーの場合はサインアップ画面に遷移
+        router.replace('/auth/signup');
+      } else {
+        // 通常ユーザーの場合はホーム画面に遷移
+        router.replace('/(tabs)/home');
+      }
     }
   }, [user, authLoading]);
 
@@ -61,6 +69,17 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.content}>
+          {/* ウェルカム画面から来た場合は戻るボタンを表示 */}
+          {isFromWelcome && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={20} color={Colors.semantic.text.primary} />
+              <Text style={styles.backButtonText}>戻る</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.header}>
             <Text style={styles.title}>ログイン</Text>
             <Text style={styles.subtitle}>
@@ -121,29 +140,27 @@ export default function LoginScreen() {
                   color={Colors.semantic.text.inverse}
                 />
               ) : (
-                <>
-                  <Text style={styles.buttonText}>ログイン</Text>
-                  <ArrowRight
-                    size={18}
-                    color={Colors.semantic.text.inverse}
-                    style={styles.buttonIcon}
-                  />
-                </>
+                <Text style={styles.buttonText}>ログイン</Text>
               )}
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            {/* ウェルカム画面から来た場合はサインアップリンクを非表示 */}
+            {!isFromWelcome && (
+              <>
+                <View style={styles.divider} />
 
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>
-                アカウントをお持ちでない方は
-              </Text>
-              <Link href="/auth/signup" asChild>
-                <TouchableOpacity style={styles.signupButton}>
-                  <Text style={styles.signupLink}>新規登録</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>
+                    アカウントをお持ちでない方は
+                  </Text>
+                  <Link href="/auth/signup" asChild>
+                    <TouchableOpacity style={styles.signupButton}>
+                      <Text style={styles.signupLink}>新規登録</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </TouchableWithoutFeedback>
@@ -183,6 +200,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.semantic.text.secondary, // セカンダリテキスト
     lineHeight: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: Colors.semantic.text.primary,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   form: {
     flex: 1,

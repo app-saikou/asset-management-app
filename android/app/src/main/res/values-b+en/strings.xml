@@ -1,0 +1,5 @@
+<resources>
+  <string name="name">"Tanao"</string>
+  <string name="subtitle">"Your Asset Tracker"</string>
+  <string name="description">"Tanao is your asset management app that helps you track and grow your wealth. Calculate compound interest to predict your asset value in 10 years and get investment guidance for the future."</string>
+</resources>

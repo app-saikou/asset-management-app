@@ -3,7 +3,7 @@
     "name": "Tanao",
     "subtitle": "あなたの資産トラッカー",
     "slug": "bolt-expo-nativewind",
-    "version": "1.0.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tanao",
@@ -29,14 +29,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.appsaikou.tanao",
-      "buildNumber": "3",
+      "buildNumber": "8",
       "infoPlist": {
         "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "より関連性の高い広告を表示するために、アプリの使用状況を追跡することを許可しますか？この情報は広告の配信にのみ使用され、個人を特定できる情報は収集されません。",
+        "NSUserNotificationsUsageDescription": "Tanaoは月イチでの資産更新を推奨しています。通知で忘れ防止をしましょう。毎月の指定日にリマインドをお送りします。",
         "GADApplicationIdentifier": "ca-app-pub-2591881801621460~8400392557",
-        "CFBundleDevelopmentRegion": "ja"
+        "CFBundleDevelopmentRegion": "en"
       }
     },
     "android": {
@@ -45,7 +46,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.appsaikou.tanao",
-      "versionCode": 1,
+      "versionCode": 8,
       "permissions": ["com.google.android.gms.permission.AD_ID"]
     },
     "web": {

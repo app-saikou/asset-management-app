@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Alert } from 'react-native';
-import { PiggyBank, TrendingUp, Briefcase } from 'lucide-react-native';
+import { Banknote, BarChart3, Briefcase } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 
 export type AssetType = 'cash' | 'stock';
@@ -93,7 +93,8 @@ export function useMultipleAssets() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, groupAssetsByType, calculateTotal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // groupAssetsByTypeとcalculateTotalはuseCallbackで定義されているため依存配列から除外
 
   const addAsset = useCallback(
     async (
@@ -147,6 +148,8 @@ export function useMultipleAssets() {
       }
 
       try {
+        console.log('資産更新開始:', { id, updates, user_id: user.id });
+
         const { data, error: updateError } = await supabase
           .from('multiple_assets')
           .update({
@@ -159,9 +162,11 @@ export function useMultipleAssets() {
           .single();
 
         if (updateError) {
+          console.error('Supabase更新エラー:', updateError);
           throw updateError;
         }
 
+        console.log('資産更新成功:', data);
         await fetchAssets(); // 資産リストを再取得
         return data;
       } catch (err: any) {
@@ -193,7 +198,17 @@ export function useMultipleAssets() {
         await fetchAssets(); // 資産リストを再取得
       } catch (err: any) {
         console.error('資産削除エラー:', err);
-        Alert.alert('エラー', err.message || '資産の削除に失敗しました');
+
+        // 履歴に紐づく資産はFK制約で削除不可
+        if (err?.code === '23503') {
+          Alert.alert(
+            '削除できません',
+            'この資産は履歴に紐づいています。履歴を削除するか、履歴に使われていない資産のみ削除できます。'
+          );
+          return;
+        }
+
+        Alert.alert('エラー', err?.message || '資産の削除に失敗しました');
       }
     },
     [user?.id, fetchAssets]
@@ -201,24 +216,25 @@ export function useMultipleAssets() {
 
   useEffect(() => {
     fetchAssets();
-  }, [fetchAssets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // fetchAssetsを依存配列から除外し、user?.idのみに依存
 
   const formatNumber = useCallback((num: number): string => {
     if (isNaN(num) || !isFinite(num) || num < 0) {
       return '0';
     }
-    const safeNum = Math.min(Math.max(num, 0), 999999999999);
+    const safeNum = Math.round(Math.min(Math.max(num, 0), 999999999999));
     return safeNum.toLocaleString('ja-JP');
   }, []);
 
   const getAssetTypeIcon = useCallback((type: AssetType) => {
     switch (type) {
       case 'cash':
-        return <PiggyBank size={20} color={Colors.accent.success[500]} />;
+        return <Banknote size={24} color={Colors.accent.info[500]} />;
       case 'stock':
-        return <TrendingUp size={20} color={Colors.accent.info[500]} />;
+        return <BarChart3 size={24} color={Colors.accent.info[500]} />;
       default:
-        return <Briefcase size={20} color={Colors.semantic.text.secondary} />;
+        return <Briefcase size={24} color={Colors.semantic.text.secondary} />;
     }
   }, []);
 
@@ -241,19 +257,37 @@ export function useMultipleAssets() {
     [totalAssets]
   );
 
-  return {
-    assets,
-    groupedAssets,
-    totalAssets,
-    loading,
-    error,
-    addAsset,
-    updateAsset,
-    deleteAsset,
-    fetchAssets,
-    formatNumber,
-    getAssetTypeIcon,
-    getAssetTypeName,
-    getAssetPercentage,
-  };
+  // 戻り値をメモ化して無限ループを防止
+  return useMemo(
+    () => ({
+      assets,
+      groupedAssets,
+      totalAssets,
+      loading,
+      error,
+      addAsset,
+      updateAsset,
+      deleteAsset,
+      fetchAssets,
+      formatNumber,
+      getAssetTypeIcon,
+      getAssetTypeName,
+      getAssetPercentage,
+    }),
+    [
+      assets,
+      groupedAssets,
+      totalAssets,
+      loading,
+      error,
+      addAsset,
+      updateAsset,
+      deleteAsset,
+      fetchAssets,
+      formatNumber,
+      getAssetTypeIcon,
+      getAssetTypeName,
+      getAssetPercentage,
+    ]
+  );
 }

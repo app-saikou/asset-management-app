@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { MoreHorizontal, Edit3, Trash2 } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { Asset, AssetType } from '../hooks/useMultipleAssets';
 
@@ -19,7 +18,7 @@ export default function AssetCard({
   formatNumber,
   getAssetTypeIcon,
 }: AssetCardProps) {
-  const handleMorePress = () => {
+  const handlePress = () => {
     Alert.alert(asset.name, '操作を選択してください', [
       {
         text: 'キャンセル',
@@ -54,42 +53,44 @@ export default function AssetCard({
   };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <View style={styles.iconContainer}>
-            {getAssetTypeIcon(asset.type)}
-          </View>
-          <View style={styles.titleText}>
-            <Text style={styles.name}>{asset.name}</Text>
-            {asset.memo && <Text style={styles.memo}>{asset.memo}</Text>}
-          </View>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.leftContent}>
+        <View style={styles.iconWrapper}>{getAssetTypeIcon(asset.type)}</View>
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>
+            {asset.name}
+          </Text>
+          {asset.memo && (
+            <Text style={styles.memo} numberOfLines={1}>
+              {asset.memo}
+            </Text>
+          )}
         </View>
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={handleMorePress}
-          activeOpacity={0.7}
-        >
-          <MoreHorizontal size={20} color={Colors.semantic.text.secondary} />
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
+      <View style={styles.rightContent}>
         <Text style={styles.amount}>¥{formatNumber(asset.amount)}</Text>
-
-        <View style={styles.details}>
-          <Text style={styles.annualRate}>年利: {asset.annual_rate}%</Text>
+        <View style={styles.rateBadge}>
+          <Text style={styles.rateLabel}>年利</Text>
+          <Text style={styles.rateValue}>{asset.annual_rate}%</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.semantic.surface,
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.semantic.border,
@@ -102,59 +103,62 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  header: {
+  leftContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flex: 1,
     gap: 12,
+    marginRight: 16,
   },
-  iconContainer: {
-    width: 24,
-    height: 24,
+  iconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${Colors.semantic.text.tertiary}15`,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titleText: {
+  info: {
     flex: 1,
+    justifyContent: 'center',
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.semantic.text.primary,
     marginBottom: 2,
   },
   memo: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.semantic.text.secondary,
-    lineHeight: 18,
   },
-  moreButton: {
-    padding: 4,
-    marginTop: -4,
-    marginRight: -4,
-  },
-  content: {
-    gap: 12,
+  rightContent: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   amount: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: Colors.semantic.text.primary,
+    marginBottom: 4,
   },
-  details: {
+  rateBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: `${Colors.semantic.button.primary}15`,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
   },
-  annualRate: {
-    fontSize: 14,
+  rateLabel: {
+    fontSize: 10,
+    color: Colors.semantic.button.primary,
     fontWeight: '500',
-    color: Colors.semantic.text.secondary,
+  },
+  rateValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.semantic.button.primary,
   },
 });

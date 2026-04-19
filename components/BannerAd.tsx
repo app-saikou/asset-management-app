@@ -57,7 +57,6 @@ export const BannerAdComponent: React.FC<BannerAdComponentProps> = ({
           requestNonPersonalizedAdsOnly: false, // ATT許可に基づいて設定
         }}
         onAdLoaded={() => {
-          console.log('Banner ad loaded successfully');
           setAdError(null);
           onAdLoaded?.();
         }}

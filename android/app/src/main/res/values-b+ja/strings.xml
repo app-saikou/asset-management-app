@@ -1,0 +1,5 @@
+<resources>
+  <string name="name">"Tanao"</string>
+  <string name="subtitle">"あなたの資産トラッカー"</string>
+  <string name="description">"Tanao（タナオ）は、あなたの資産管理をサポートするアプリです。複利計算により10年後の資産価値を予測し、将来への投資指針を提供します。"</string>
+</resources>
