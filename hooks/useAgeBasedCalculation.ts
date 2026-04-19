@@ -136,6 +136,7 @@ interface UseCalculationAgesReturn {
   canAddMore: boolean;
   maxCount: number;
   currentCount: number;
+  fetchAges: () => Promise<void>;
   addAge: (
     targetAge: number,
     targetMonth: number,
@@ -303,6 +304,7 @@ export function useCalculationAges(): UseCalculationAgesReturn {
     canAddMore,
     maxCount,
     currentCount,
+    fetchAges,
     addAge,
     removeAge,
     updateAge,

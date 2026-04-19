@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Target, ChevronRight, Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { useMultipleAssets } from '../../hooks/useMultipleAssets';
 import { useHomeProjection } from '../../hooks/useHomeProjection';
@@ -18,10 +19,17 @@ import { useDisplayUnit } from '../../contexts/DisplayUnitContext';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { assets, totalAssets, loading, formatNumber } = useMultipleAssets();
-  const { ages } = useCalculationAges();
+  const { assets, totalAssets, loading, formatNumber, fetchAssets } = useMultipleAssets();
+  const { ages, fetchAges } = useCalculationAges();
   const { result: homeProjection, loading: projectionLoading } = useHomeProjection(assets, ages);
   const { isHidden, toggleHidden, formatNumberDisplay: fmt } = useDisplayUnit();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAssets();
+      fetchAges();
+    }, [fetchAssets, fetchAges])
+  );
   const formatNumberDisplay = useCallback((num: number) => fmt(num, formatNumber), [fmt, formatNumber]);
 
   const isLoading = loading || projectionLoading;
