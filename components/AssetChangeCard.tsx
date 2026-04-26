@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Banknote, BarChart3, ArrowRight } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { AssetHistoryDetail } from '../hooks/useAssetHistory';
+import MoneyText, { formatMan } from './MoneyText';
 
 interface AssetChangeCardProps {
   detail: AssetHistoryDetail;
@@ -61,10 +62,13 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
       <View style={styles.changeContainer}>
         <View style={styles.amountFlow}>
           <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>調整前</Text>
-            <Text style={styles.originalAmount}>
-              ¥{formatNumber(detail.original_amount)}
-            </Text>
+            <Text style={styles.amountLabel}>更新前</Text>
+            <MoneyText
+              amount={detail.original_amount}
+              size={16}
+              weight="600"
+              color={Colors.semantic.text.secondary}
+            />
           </View>
 
           <View style={styles.arrowContainer}>
@@ -72,10 +76,12 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
           </View>
 
           <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>調整後</Text>
-            <Text style={styles.adjustedAmount}>
-              ¥{formatNumber(detail.adjusted_amount)}
-            </Text>
+            <Text style={styles.amountLabel}>更新後</Text>
+            <MoneyText
+              amount={detail.adjusted_amount}
+              size={16}
+              weight="600"
+            />
           </View>
         </View>
 
@@ -88,7 +94,7 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
                 difference >= 0 ? styles.positiveText : styles.negativeText,
               ]}
             >
-              {difference >= 0 ? '+' : ''}¥{formatNumber(Math.abs(difference))}(
+              {difference >= 0 ? '+' : '-'}¥{formatMan(Math.abs(difference))}万(
               {difference >= 0 ? '+' : ''}
               {differencePercentage.toFixed(1)}%)
             </Text>
@@ -105,20 +111,22 @@ export const AssetChangeCard: React.FC<AssetChangeCardProps> = ({
               }時点の資産額`
             : '目標年齢時点の資産額'}
         </Text>
-        <Text style={styles.futureValueAmount}>
-          ¥
-          {formatNumber(
-            targetAgeBalance !== null ? targetAgeBalance : detail.future_value
-          )}
-        </Text>
-        <Text style={styles.increaseAmount}>
-          +¥
-          {formatNumber(
-            (targetAgeBalance !== null
-              ? targetAgeBalance
-              : detail.future_value) - detail.adjusted_amount
-          )}
-        </Text>
+        <MoneyText
+          amount={targetAgeBalance !== null ? targetAgeBalance : detail.future_value}
+          size={18}
+          weight="700"
+          color={Colors.accent.success[600]}
+        />
+        <MoneyText
+          amount={
+            (targetAgeBalance !== null ? targetAgeBalance : detail.future_value) -
+            detail.adjusted_amount
+          }
+          size={14}
+          weight="500"
+          color={Colors.accent.success[500]}
+          prefix="+"
+        />
       </View>
     </View>
   );

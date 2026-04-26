@@ -706,7 +706,7 @@ export default function ProfileScreen() {
               </Text>
               <View style={styles.warningList}>
                 <Text style={styles.warningListItem}>• すべての資産データ</Text>
-                <Text style={styles.warningListItem}>• 計算履歴</Text>
+                <Text style={styles.warningListItem}>• 計算記録</Text>
                 <Text style={styles.warningListItem}>• アカウント情報</Text>
               </View>
             </View>

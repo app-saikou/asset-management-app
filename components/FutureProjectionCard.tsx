@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TrendingUp, Target, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
+import MoneyText, { formatMan } from './MoneyText';
 
 interface FutureProjectionCardProps {
   targetAge: number;
@@ -42,12 +43,12 @@ export default function FutureProjectionCard({
         )}
       </View>
 
-      <Text style={styles.futureValue}>¥{formatNumber(futureValue)}</Text>
+      <MoneyText amount={futureValue} size={28} weight="800" style={styles.futureValueRow} />
 
       <View style={styles.increaseRow}>
         <Text style={styles.increaseLabel}>現在から</Text>
         <Text style={styles.increaseAmount}>
-          +¥{formatNumber(increaseAmount)}
+          +¥{formatMan(increaseAmount)}万
         </Text>
         <Text style={styles.increaseLabel}>増加</Text>
       </View>
@@ -72,7 +73,7 @@ export default function FutureProjectionCard({
           ) : (
             <>
               <Text style={styles.goalLabel}>目標まであと</Text>
-              <Text style={styles.goalGap}>¥{formatNumber(gap!)}</Text>
+              <Text style={styles.goalGap}>¥{formatMan(gap!)}万</Text>
             </>
           )}
         </View>
@@ -124,6 +125,9 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     color: Colors.semantic.text.primary,
+    marginBottom: 8,
+  },
+  futureValueRow: {
     marginBottom: 8,
   },
   increaseRow: {

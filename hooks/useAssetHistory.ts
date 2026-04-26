@@ -20,6 +20,7 @@ export interface AssetHistoryItem {
   current_assets: number;
   annual_rate: number;
   years: number;
+  target_month: number | null;
   future_value: number;
   increase_amount: number;
   created_at: string;
@@ -87,7 +88,8 @@ export const useAssetHistory = () => {
       annualRate: number;
     }>,
     projectionRunId?: string | null,
-    assetProjections?: Map<string, number>
+    assetProjections?: Map<string, number>,
+    targetMonth?: number | null
   ) => {
     if (!user?.id) return;
 
@@ -103,6 +105,7 @@ export const useAssetHistory = () => {
             current_assets: currentAssets,
             annual_rate: annualRate,
             years: years,
+            target_month: targetMonth ?? null,
             future_value: futureValue,
             increase_amount: increaseAmount,
             projection_run_id: projectionRunId ?? null,

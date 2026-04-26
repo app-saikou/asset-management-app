@@ -10,6 +10,7 @@ import {
 import { X, TrendingUp, Lightbulb, Calendar } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import type { MultiYearCalculationResult } from '../types/calculationYears';
+import MoneyText, { formatMan } from './MoneyText';
 
 interface CalculationResult {
   currentAssets: number;
@@ -47,7 +48,7 @@ export default function CalculationResultModal({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>棚卸し計算結果</Text>
+          <Text style={styles.headerTitle}>資産シミュレーション</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <X size={24} color={Colors.semantic.text.primary} />
           </TouchableOpacity>
@@ -74,12 +75,14 @@ export default function CalculationResultModal({
                   </View>
 
                   <View style={styles.yearResultContent}>
-                    <Text style={styles.yearResultAmount}>
-                      ¥{formatNumber(yearResult.futureValue)}
-                    </Text>
-                    <Text style={styles.yearResultIncrease}>
-                      +¥{formatNumber(yearResult.increaseAmount)}
-                    </Text>
+                    <MoneyText amount={yearResult.futureValue} size={20} weight="700" />
+                    <MoneyText
+                      amount={yearResult.increaseAmount}
+                      size={16}
+                      weight="600"
+                      color={Colors.accent.success[600]}
+                      prefix="+"
+                    />
                   </View>
                 </View>
               ))}
@@ -96,17 +99,19 @@ export default function CalculationResultModal({
                 <Text style={styles.resultText}>
                   {result.years}年後、あなたの資産は
                 </Text>
-                <Text style={styles.resultAmount}>
-                  ¥{formatNumber(result.futureValue)}
-                </Text>
+                <MoneyText amount={result.futureValue} size={36} weight="800" color={Colors.accent.success[600]} style={styles.resultAmountRow} />
                 <Text style={styles.resultSubtext}>になります</Text>
               </View>
 
               <View style={styles.increaseContainer}>
                 <Text style={styles.increaseLabel}>増加額</Text>
-                <Text style={styles.increaseValue}>
-                  +¥{formatNumber(result.increaseAmount)}
-                </Text>
+                <MoneyText
+                  amount={result.increaseAmount}
+                  size={24}
+                  weight="700"
+                  color={Colors.accent.success[600]}
+                  prefix="+"
+                />
               </View>
             </View>
           )}
@@ -116,15 +121,15 @@ export default function CalculationResultModal({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>現在の総資産</Text>
               <Text style={styles.detailValue}>
-                ¥{formatNumber(result.currentAssets)}
+                ¥{formatMan(result.currentAssets)}万
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>想定年利</Text>
+              <Text style={styles.detailLabel}>年利</Text>
               <Text style={styles.detailValue}>{result.annualRate}%</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>運用期間</Text>
+              <Text style={styles.detailLabel}>期間</Text>
               <Text style={styles.detailValue}>{result.years}年</Text>
             </View>
             <View style={styles.detailRow}>
@@ -221,6 +226,9 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '800',
     color: Colors.accent.success[600],
+    marginBottom: 8,
+  },
+  resultAmountRow: {
     marginBottom: 8,
   },
   resultSubtext: {

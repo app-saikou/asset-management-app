@@ -11,6 +11,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.114",
     "@expo/cli": "^54.0.5",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",

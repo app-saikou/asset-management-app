@@ -271,10 +271,10 @@ export const InventoryAdjustmentModal: React.FC<
 
             setTimeout(() => {
               Alert.alert(
-                '棚卸し完了',
-                `資産が調整されました。\n\n調整前: ${formatAmount(
+                '更新完了',
+                `資産を更新しました。\n\n更新前:${formatAmount(
                   totals.originalTotal
-                )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+                )}円\n更新後:${formatAmount(totals.adjustedTotal)}円\n増減:${
                   totals.totalDifference >= 0 ? '+' : ''
                 }${formatAmount(totals.totalDifference)}円`,
                 [
@@ -321,10 +321,10 @@ export const InventoryAdjustmentModal: React.FC<
           );
 
           Alert.alert(
-            '棚卸し完了',
-            `資産が調整されました。\n\n調整前: ${formatAmount(
+            '更新完了',
+            `資産を更新しました。\n\n更新前:${formatAmount(
               totals.originalTotal
-            )}円\n調整後: ${formatAmount(totals.adjustedTotal)}円\n差額: ${
+            )}円\n更新後:${formatAmount(totals.adjustedTotal)}円\n増減:${
               totals.totalDifference >= 0 ? '+' : ''
             }${formatAmount(totals.totalDifference)}円`,
             [
@@ -378,19 +378,19 @@ export const InventoryAdjustmentModal: React.FC<
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>合計資産</Text>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>調整前</Text>
+              <Text style={styles.summaryLabel}>更新前</Text>
               <Text style={styles.summaryValue}>
                 {formatAmount(totals.originalTotal)}円
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>調整後</Text>
+              <Text style={styles.summaryLabel}>更新後</Text>
               <Text style={styles.summaryValue}>
                 {formatAmount(totals.adjustedTotal)}円
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>差額</Text>
+              <Text style={styles.summaryLabel}>増減</Text>
               <Text
                 style={[
                   styles.summaryValue,
@@ -406,21 +406,21 @@ export const InventoryAdjustmentModal: React.FC<
 
             <View style={styles.divider} />
 
-            <Text style={styles.summaryTitle}>{years}年後の将来価値</Text>
+            <Text style={styles.summaryTitle}>{years}年後の将来の資産</Text>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>調整前</Text>
+              <Text style={styles.summaryLabel}>更新前</Text>
               <Text style={styles.summaryValue}>
                 {formatAmount(totals.originalFutureValue)}円
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>調整後</Text>
+              <Text style={styles.summaryLabel}>更新後</Text>
               <Text style={styles.summaryValue}>
                 {formatAmount(totals.adjustedFutureValue)}円
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>差額</Text>
+              <Text style={styles.summaryLabel}>増減</Text>
               <Text
                 style={[
                   styles.summaryValue,
@@ -449,14 +449,14 @@ export const InventoryAdjustmentModal: React.FC<
 
                 <View style={styles.assetContent}>
                   <View style={styles.originalAmountSection}>
-                    <Text style={styles.originalAmountLabel}>調整前の金額</Text>
+                    <Text style={styles.originalAmountLabel}>更新前の金額</Text>
                     <Text style={styles.originalAmountValue}>
                       {formatAmount(asset.amount)}円
                     </Text>
                   </View>
 
                   <View style={styles.amountSection}>
-                    <Text style={styles.amountLabel}>調整後の金額</Text>
+                    <Text style={styles.amountLabel}>更新後の金額</Text>
                     <TextInput
                       style={styles.amountInput}
                       value={

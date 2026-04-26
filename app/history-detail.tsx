@@ -143,8 +143,8 @@ export default function HistoryDetailScreen() {
   // 削除確認
   const handleDelete = () => {
     Alert.alert(
-      '履歴を削除',
-      'この履歴を削除しますか？この操作は取り消せません。',
+      '記録を削除',
+      'この記録を削除しますか？この操作は取り消せません。',
       [
         {
           text: 'キャンセル',
@@ -167,7 +167,7 @@ export default function HistoryDetailScreen() {
       router.back();
     } catch (error) {
       console.error('削除エラー:', error);
-      Alert.alert('エラー', '履歴の削除に失敗しました');
+      Alert.alert('エラー', '記録の削除に失敗しました');
     } finally {
       setDeleting(false);
     }
@@ -1099,8 +1099,8 @@ export default function HistoryDetailScreen() {
             {isFromOnboarding
               ? 'オンボーディング完了'
               : isNewResult
-              ? '棚卸し完了'
-              : '履歴詳細'}
+              ? '更新完了'
+              : '記録詳細'}
           </Text>
           {!isNewResult && !isFromOnboarding && createdAt && (
             <View style={styles.headerDateBadge}>
@@ -1280,7 +1280,7 @@ export default function HistoryDetailScreen() {
                   </View>
                 </View>
               )}
-              <Text style={styles.sectionTitle}>資産推移</Text>
+              <Text style={styles.sectionTitle}>資産の推移</Text>
               <Text style={styles.graphSubtitle}>
                 タップ & ドラッグで年ごとの資産内訳を確認できます
               </Text>
@@ -1611,9 +1611,9 @@ export default function HistoryDetailScreen() {
           {/* 資産別変化セクション */}
           {assetDetails.length > 0 && (
             <View style={styles.assetChangesSection}>
-              <Text style={styles.sectionTitle}>資産別変化</Text>
+              <Text style={styles.sectionTitle}>内訳の変化</Text>
               <Text style={styles.sectionSubtitle}>
-                棚卸し調整で変更された各資産の詳細
+                更新で変更された各資産の詳細
               </Text>
               <View style={styles.assetChangesList}>
                 {assetDetails.map((detail) => {

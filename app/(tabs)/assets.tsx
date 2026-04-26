@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Plus } from 'lucide-react-native';
+import { TrendingUp, Plus, Banknote, BarChart3 } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import {
   useMultipleAssets,
@@ -82,11 +82,10 @@ export default function AssetsScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'cash' | 'stock'>('cash');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [shouldShowNotificationModal, setShouldShowNotificationModal] = useState(false);
   const hasShownNotificationModalThisSessionRef = useRef(false);
-  const { displayInMan, toggleUnit: handleToggleUnit, formatNumberDisplay: fmt } = useDisplayUnit();
+  const { formatNumberDisplay: fmt } = useDisplayUnit();
   const formatNumberDisplay = useCallback((num: number) => fmt(num, formatNumber), [fmt, formatNumber]);
 
 
@@ -225,40 +224,40 @@ export default function AssetsScreen() {
 
   const hasAssets = totalAssets > 0;
 
-  const renderAssetList = () => {
-    if (activeTab === 'cash') {
-      return groupedAssets.cash.length > 0 ? (
-        <AssetSectionCard
-          assets={groupedAssets.cash}
-          formatNumber={formatNumberDisplay}
-          getAssetTypeIcon={getAssetTypeIcon}
-          onEditAsset={handleEditAsset}
-          onDeleteAsset={handleDeleteAsset}
-        />
-      ) : (
-        <View style={styles.emptyTabContainer}>
-          <Text style={styles.emptyTabText}>現金資産がありません</Text>
-          <Text style={styles.emptyTabSubtext}>
-            上記の「資産を追加」ボタンから追加できます
-          </Text>
+  const renderSection = (type: 'cash' | 'stock') => {
+    const label = type === 'cash' ? '現金' : '株式';
+    const icon = type === 'cash'
+      ? <Banknote size={16} color={Colors.semantic.text.secondary} />
+      : <BarChart3 size={16} color={Colors.accent.warning[500]} />;
+    const sectionAssets = groupedAssets[type];
+    return (
+      <View style={styles.section} key={type}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            {icon}
+            <Text style={styles.sectionTitle}>{label}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.sectionAddButton}
+            onPress={handleAddAsset}
+            activeOpacity={0.7}
+          >
+            <Plus size={16} color={Colors.semantic.button.primary} />
+            <Text style={styles.sectionAddText}>追加</Text>
+          </TouchableOpacity>
         </View>
-      );
-    }
-
-    return groupedAssets.stock.length > 0 ? (
-      <AssetSectionCard
-        assets={groupedAssets.stock}
-        formatNumber={formatNumberDisplay}
-        getAssetTypeIcon={getAssetTypeIcon}
-        onEditAsset={handleEditAsset}
-        onDeleteAsset={handleDeleteAsset}
-      />
-    ) : (
-      <View style={styles.emptyTabContainer}>
-        <Text style={styles.emptyTabText}>株式資産がありません</Text>
-        <Text style={styles.emptyTabSubtext}>
-          上記の「資産を追加」ボタンから追加できます
-        </Text>
+        {sectionAssets.length > 0 ? (
+          <AssetSectionCard
+            assets={sectionAssets}
+            formatNumber={formatNumberDisplay}
+            onEditAsset={handleEditAsset}
+            onDeleteAsset={handleDeleteAsset}
+          />
+        ) : (
+          <View style={styles.emptyTabContainer}>
+            <Text style={styles.emptyTabText}>{label}資産がありません</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -266,71 +265,25 @@ export default function AssetsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {hasAssets ? (
-        <View style={styles.contentWithList}>
-          <View style={styles.staticSection}>
-            <TotalAssetCard
-              totalAssets={totalAssets}
-              cashTotal={getCategoryTotal(groupedAssets.cash)}
-              stockTotal={getCategoryTotal(groupedAssets.stock)}
-              formatNumber={formatNumberDisplay}
-              displayInMan={displayInMan}
-              onToggleUnit={handleToggleUnit}
-            />
-
-            <View style={styles.controlsContainer}>
-              <View style={styles.tabContainer}>
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'cash' && styles.tabActive]}
-                  onPress={() => setActiveTab('cash')}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab === 'cash' && styles.tabTextActive,
-                    ]}
-                  >
-                    現金
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    activeTab === 'stock' && styles.tabActive,
-                  ]}
-                  onPress={() => setActiveTab('stock')}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab === 'stock' && styles.tabTextActive,
-                    ]}
-                  >
-                    株式
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={styles.compactAddButton}
-                onPress={handleAddAsset}
-                activeOpacity={0.7}
-              >
-                <Plus size={24} color={Colors.semantic.button.primary} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView
-            style={styles.assetScroll}
-            contentContainerStyle={styles.assetScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {renderAssetList()}
-          </ScrollView>
-        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <TotalAssetCard
+            totalAssets={totalAssets}
+            cashTotal={getCategoryTotal(groupedAssets.cash)}
+            stockTotal={getCategoryTotal(groupedAssets.stock)}
+            formatNumber={formatNumberDisplay}
+            lastUpdatedAt={assets.length > 0
+              ? assets.reduce((latest, a) =>
+                  a.updated_at > latest ? a.updated_at : latest,
+                  assets[0].updated_at)
+              : undefined}
+          />
+          {renderSection('cash')}
+          {renderSection('stock')}
+        </ScrollView>
       ) : (
         <ScrollView
           style={styles.scrollView}
@@ -519,20 +472,41 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100, // フッターボタンとFABの高さ分の余白を追加
   },
-  contentWithList: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+  section: {
+    marginBottom: 8,
   },
-  staticSection: {
-    marginBottom: 16,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  assetScroll: {
-    flex: 1,
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  assetScrollContent: {
-    paddingBottom: 120,
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    letterSpacing: 0.3,
+  },
+  sectionAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+    backgroundColor: Colors.semantic.surface,
+  },
+  sectionAddText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.semantic.button.primary,
   },
   emptyContainer: {
     flex: 1,
@@ -563,29 +537,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 20,
   },
-  controlsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 4,
-  },
-  compactAddButton: {
-    width: 48,
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.semantic.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
-    shadowColor: Colors.semantic.text.primary,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
   emptyAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -606,42 +557,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.semantic.surface,
-  },
-  tabContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: Colors.semantic.surface,
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
-    shadowColor: Colors.semantic.text.primary,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  tabActive: {
-    backgroundColor: Colors.semantic.button.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.semantic.text.secondary,
-  },
-  tabTextActive: {
-    color: Colors.semantic.surface,
-    fontWeight: '700',
   },
   emptyTabContainer: {
     padding: 40,

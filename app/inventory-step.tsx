@@ -123,12 +123,12 @@ export default function InventoryStepScreen() {
   const isLastStep = currentStep === assets.length - 1;
   const isFirstStep = currentStep === 0;
 
-  // 差額計算
+  // 増減計算
   const diff = currentAsset
     ? currentAsset.adjustedAmount - currentAsset.amount
     : 0;
 
-  // 全体の差額
+  // 全体の増減
   const diffTotal = totals.adjustedTotal - totals.originalTotal;
 
   // 資産の調整
@@ -251,6 +251,7 @@ export default function InventoryStepScreen() {
       // 月次複利で計算された目標年齢時点の資産額・資産別残高を取得
       let futureValueFromProjections: number | null = null;
       let years = 0;
+      let savedTargetMonth: number | null = null;
       const assetProjections = new Map<string, number>();
 
       if (projectionRunId) {
@@ -291,6 +292,7 @@ export default function InventoryStepScreen() {
                 now.getDate() >= birthDate.getDate());
             const currentAge = hadBirthday ? ageRaw : ageRaw - 1;
             years = calculationAges.target_age - currentAge;
+            savedTargetMonth = calculationAges.target_month ?? null;
 
             // 資産別残高も取得（asset_history_details に使用）
             const { data: projections } = await supabase
@@ -355,7 +357,8 @@ export default function InventoryStepScreen() {
         futureValue,
         assetDetails,
         projectionRunId ?? undefined,
-        assetProjections
+        assetProjections,
+        savedTargetMonth
       );
 
       // 履歴詳細画面に必要なパラメータを渡す
@@ -425,7 +428,7 @@ export default function InventoryStepScreen() {
           >
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>棚卸し</Text>
+          <Text style={styles.headerTitle}>資産を更新</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -445,7 +448,7 @@ export default function InventoryStepScreen() {
           >
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>棚卸し</Text>
+          <Text style={styles.headerTitle}>資産を更新</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.emptyContainer}>
@@ -466,7 +469,7 @@ export default function InventoryStepScreen() {
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{currentAsset?.name}の調整</Text>
+          <Text style={styles.headerTitle}>{currentAsset?.name}を更新</Text>
           {/* ステップインジケーター */}
           <View style={styles.stepIndicator}>
             {assets.map((_, index) => (
@@ -493,7 +496,7 @@ export default function InventoryStepScreen() {
 
           {/* 調整後の総額（メイン） */}
           <View style={styles.totalValueContainer}>
-            <Text style={styles.totalValueLabel}>調整後</Text>
+            <Text style={styles.totalValueLabel}>更新後</Text>
             <Text style={styles.totalValueMain}>
               ¥{totals.adjustedTotal.toLocaleString()}
             </Text>
@@ -502,7 +505,7 @@ export default function InventoryStepScreen() {
           <View style={styles.summarySubInfo}>
             {/* 調整前 */}
             <View style={styles.subInfoItem}>
-              <Text style={styles.subInfoLabel}>調整前</Text>
+              <Text style={styles.subInfoLabel}>更新前</Text>
               <Text style={styles.subInfoValue}>
                 ¥{totals.originalTotal.toLocaleString()}
               </Text>
@@ -510,9 +513,9 @@ export default function InventoryStepScreen() {
 
             <View style={styles.verticalDivider} />
 
-            {/* 差額 */}
+            {/* 増減 */}
             <View style={styles.subInfoItem}>
-              <Text style={styles.subInfoLabel}>差額</Text>
+              <Text style={styles.subInfoLabel}>増減</Text>
               <View
                 style={[
                   styles.diffBadgeSmall,
@@ -582,9 +585,9 @@ export default function InventoryStepScreen() {
                 </View>
               </View>
 
-              {/* 差額表示 */}
+              {/* 増減表示 */}
               <View style={styles.diffContainer}>
-                <Text style={styles.diffLabel}>差額</Text>
+                <Text style={styles.diffLabel}>増減</Text>
                 <View
                   style={[
                     styles.diffBadge,

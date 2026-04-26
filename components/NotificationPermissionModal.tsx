@@ -37,7 +37,7 @@ export default function NotificationPermissionModal({
             </View>
 
             {/* タイトル */}
-            <Text style={styles.title}>月イチ棚卸しを忘れないために</Text>
+            <Text style={styles.title}>毎月の資産チェックを習慣に</Text>
 
             {/* 本文 */}
             <Text style={styles.description}>

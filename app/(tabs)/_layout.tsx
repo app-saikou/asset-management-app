@@ -102,7 +102,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="history"
           options={{
-            title: '履歴',
+            title: 'タイムライン',
             tabBarIcon: ({ size, color }) => (
               <Calendar size={size} color={color} />
             ),

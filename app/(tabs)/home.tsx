@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Target, ChevronRight, Eye, EyeOff } from 'lucide-react-native';
@@ -16,6 +17,7 @@ import { useMultipleAssets } from '../../hooks/useMultipleAssets';
 import { useHomeProjection } from '../../hooks/useHomeProjection';
 import { useCalculationAges } from '../../hooks/useAgeBasedCalculation';
 import { useDisplayUnit } from '../../contexts/DisplayUnitContext';
+import { useStreak } from '../../hooks/useStreak';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -23,16 +25,44 @@ export default function HomeScreen() {
   const { ages, fetchAges } = useCalculationAges();
   const { result: homeProjection, loading: projectionLoading } = useHomeProjection(assets, ages);
   const { isHidden, toggleHidden, formatNumberDisplay: fmt } = useDisplayUnit();
+  const { result: streakResult, fetchStreak } = useStreak();
 
   useFocusEffect(
     useCallback(() => {
       fetchAssets();
       fetchAges();
-    }, [fetchAssets, fetchAges])
+      fetchStreak();
+    }, [fetchAssets, fetchAges, fetchStreak])
   );
   const formatNumberDisplay = useCallback((num: number) => fmt(num, formatNumber), [fmt, formatNumber]);
+  const formatMan = useCallback((num: number) => {
+    const man = Math.round(num / 1000) / 10;
+    return man.toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+  }, []);
 
   const isLoading = loading || projectionLoading;
+
+  const isOnTrack = homeProjection?.targetAmount
+    ? homeProjection.futureValue >= homeProjection.targetAmount
+    : null;
+  const futureGap = homeProjection?.targetAmount
+    ? homeProjection.targetAmount - homeProjection.futureValue
+    : null;
+  const progressPercent = homeProjection?.targetAmount && homeProjection.targetAmount > 0
+    ? Math.min(100, Math.round((totalAssets / homeProjection.targetAmount) * 100))
+    : null;
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (progressPercent !== null) {
+      Animated.spring(progressAnim, {
+        toValue: progressPercent,
+        tension: 40,
+        friction: 8,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [progressPercent]);
 
   if (isLoading && !homeProjection && totalAssets === 0) {
     return (
@@ -43,14 +73,6 @@ export default function HomeScreen() {
       </SafeAreaView>
     );
   }
-
-  const gap = homeProjection?.targetAmount
-    ? homeProjection.targetAmount - homeProjection.futureValue
-    : null;
-  const isGoalAchieved = gap !== null && gap <= 0;
-  const progressPercent = homeProjection?.targetAmount && homeProjection.targetAmount > 0
-    ? Math.min(100, Math.round((homeProjection.futureValue / homeProjection.targetAmount) * 100))
-    : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -70,9 +92,38 @@ export default function HomeScreen() {
               }
             </TouchableOpacity>
           </View>
-          <Text style={styles.heroAmount}>
-            {isHidden ? '¥ ••••••' : `¥${formatNumberDisplay(totalAssets)}`}
-          </Text>
+          <View style={styles.heroAmountRow}>
+            <Text style={styles.heroCurrency}>¥</Text>
+            {isHidden ? (
+              <Text style={styles.heroAmount}>••••••</Text>
+            ) : (
+              <>
+                <Text style={styles.heroAmount}>{formatMan(totalAssets)}</Text>
+                <Text style={styles.heroUnit}>万</Text>
+              </>
+            )}
+          </View>
+          {/* ストリーク */}
+          {streakResult?.hasAnyHistory && (
+            <View style={styles.streakContainer}>
+              {streakResult.streak > 0 && (
+                <View style={styles.streakHeaderRow}>
+                  <Text style={styles.streakFireEmoji}>🔥</Text>
+                  <Text style={styles.streakCountText}>{streakResult.streak}ヶ月連続更新中</Text>
+                </View>
+              )}
+              <View style={styles.streakPillsRow}>
+                {streakResult.months.map((m, i) => (
+                  <View key={i} style={[styles.streakPill, m.hasUpdate && styles.streakPillFilled]}>
+                    <Text style={[styles.streakPillLabel, m.hasUpdate && styles.streakPillLabelFilled]}>
+                      {m.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           <TouchableOpacity
             style={styles.assetsLink}
             onPress={() => router.push('/(tabs)/assets')}
@@ -87,7 +138,7 @@ export default function HomeScreen() {
         {homeProjection ? (
           <View style={styles.projectionZone}>
             <View style={styles.projectionHeader}>
-              <TrendingUp size={14} color={Colors.accent.success[500]} />
+              <TrendingUp size={14} color={Colors.semantic.text.tertiary} />
               <Text style={styles.projectionLabel}>
                 {homeProjection.targetAge}歳時の予測資産
               </Text>
@@ -96,14 +147,22 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            <Text style={styles.projectionAmount}>
-              ¥{formatNumberDisplay(homeProjection.futureValue)}
-            </Text>
+            <View style={styles.projectionAmountRow}>
+              <Text style={styles.projectionCurrency}>¥</Text>
+              {isHidden ? (
+                <Text style={styles.projectionAmount}>••••••</Text>
+              ) : (
+                <>
+                  <Text style={styles.projectionAmount}>{formatMan(homeProjection.futureValue)}</Text>
+                  <Text style={styles.projectionUnit}>万</Text>
+                </>
+              )}
+            </View>
 
             <Text style={styles.projectionIncrease}>
               現在から{' '}
               <Text style={styles.projectionIncreaseValue}>
-                +¥{formatNumberDisplay(homeProjection.increaseAmount)}
+                {isHidden ? '••••••' : `+¥${formatNumberDisplay(homeProjection.increaseAmount)}`}
               </Text>
               {' '}増加
             </Text>
@@ -112,12 +171,15 @@ export default function HomeScreen() {
             {progressPercent !== null && (
               <View style={styles.progressSection}>
                 <View style={styles.progressBar}>
-                  <View
+                  <Animated.View
                     style={[
                       styles.progressFill,
                       {
-                        width: `${progressPercent}%`,
-                        backgroundColor: isGoalAchieved
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                        }),
+                        backgroundColor: isOnTrack
                           ? Colors.accent.success[500]
                           : Colors.semantic.button.primary,
                       },
@@ -128,17 +190,17 @@ export default function HomeScreen() {
                   <View style={styles.progressGoalRow}>
                     <Target
                       size={12}
-                      color={isGoalAchieved ? Colors.accent.success[600] : Colors.semantic.text.tertiary}
+                      color={isOnTrack ? Colors.accent.success[600] : Colors.semantic.text.tertiary}
                     />
-                    {isGoalAchieved ? (
-                      <Text style={styles.goalAchievedText}>目標達成！</Text>
+                    {isOnTrack ? (
+                      <Text style={styles.goalAchievedText}>このペースで達成見込み</Text>
                     ) : (
                       <Text style={styles.progressGoalText}>
-                        目標まであと ¥{formatNumberDisplay(gap!)}
+                        {isHidden ? '••••••' : `¥${formatNumberDisplay(Math.abs(futureGap!))}`} 不足の見込み
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.progressPercent}>{progressPercent}%</Text>
+                  <Text style={styles.progressPercent}>{isHidden ? '••%' : `${progressPercent}%`}</Text>
                 </View>
               </View>
             )}
@@ -197,19 +259,87 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.tertiary,
     letterSpacing: 0.6,
   },
+  heroCurrency: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    marginBottom: 6,
+    marginRight: 2,
+  },
   heroAmount: {
     fontSize: 60,
     fontWeight: '800',
     color: Colors.semantic.text.primary,
     letterSpacing: -2,
     lineHeight: 68,
+    fontVariant: ['tabular-nums'],
+  },
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     marginBottom: 12,
+  },
+  heroUnit: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: Colors.semantic.text.primary,
+    marginLeft: 4,
+    marginBottom: 8,
   },
   assetsLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     alignSelf: 'flex-start',
+  },
+
+  // ストリーク
+  streakContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  streakHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 12,
+  },
+  streakFireEmoji: {
+    fontSize: 15,
+    lineHeight: 18,
+  },
+  streakCountText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    letterSpacing: 0.1,
+  },
+  streakPillsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  streakPill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+    backgroundColor: 'transparent',
+  },
+  streakPillFilled: {
+    backgroundColor: Colors.semantic.text.primary,
+    borderColor: Colors.semantic.text.primary,
+  },
+  streakPillLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.semantic.text.tertiary,
+  },
+  streakPillLabelFilled: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
   assetsLinkText: {
     fontSize: 13,
@@ -244,11 +374,23 @@ const styles = StyleSheet.create({
   projectionYearsBadge: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.accent.success[600],
-    backgroundColor: `${Colors.accent.success[500]}15`,
+    color: Colors.semantic.text.secondary,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+    borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
+  },
+  projectionAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  projectionCurrency: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.semantic.text.primary,
+    marginRight: 2,
   },
   projectionAmount: {
     fontSize: 44,
@@ -256,6 +398,13 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.primary,
     letterSpacing: -1.5,
     lineHeight: 50,
+    fontVariant: ['tabular-nums'],
+  },
+  projectionUnit: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.semantic.text.primary,
+    marginLeft: 3,
     marginBottom: 8,
   },
   projectionIncrease: {
@@ -265,7 +414,7 @@ const styles = StyleSheet.create({
   },
   projectionIncreaseValue: {
     fontWeight: '700',
-    color: Colors.accent.success[600],
+    color: Colors.semantic.text.primary,
   },
 
   // プログレスバー
@@ -298,8 +447,8 @@ const styles = StyleSheet.create({
   },
   goalAchievedText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.accent.success[600],
+    fontWeight: '600',
+    color: Colors.semantic.text.secondary,
   },
   progressPercent: {
     fontSize: 12,

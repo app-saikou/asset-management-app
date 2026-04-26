@@ -353,6 +353,7 @@ export default function InventoryAdjustmentScreen() {
         // years・資産別残高を monthly_asset_projections から取得済みのデータで計算
         let years = 0;
         const assetProjections = new Map<string, number>();
+        let savedTargetMonth: number | null = null;
         try {
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -379,6 +380,7 @@ export default function InventoryAdjustmentScreen() {
                 now.getDate() >= birthDate.getDate());
             const currentAge = hadBirthday ? ageRaw : ageRaw - 1;
             years = calculationAges.target_age - currentAge;
+            savedTargetMonth = calculationAges.target_month ?? null;
 
             // 資産別残高を取得（asset_history_details に使用）
             const targetYear =
@@ -414,7 +416,8 @@ export default function InventoryAdjustmentScreen() {
           futureValue,
           assetDetails,
           projectionRunId ?? undefined,
-          assetProjections
+          assetProjections,
+          savedTargetMonth
         );
 
         // 履歴詳細画面に新規計算結果として遷移
@@ -438,7 +441,7 @@ export default function InventoryAdjustmentScreen() {
           >
             <ArrowLeft size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>棚卸し</Text>
+          <Text style={styles.headerTitle}>資産を更新</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -458,28 +461,28 @@ export default function InventoryAdjustmentScreen() {
         >
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>棚卸し</Text>
+        <Text style={styles.headerTitle}>資産を更新</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* コンテンツ */}
       <ScrollView style={styles.content}>
         <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>調整前後の比較</Text>
+          <Text style={styles.summaryTitle}>更新前後の比較</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>調整前:</Text>
+            <Text style={styles.summaryLabel}>更新前:</Text>
             <Text style={styles.summaryValue}>
               ¥{totals.originalTotal.toLocaleString()}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>調整後:</Text>
+            <Text style={styles.summaryLabel}>更新後:</Text>
             <Text style={styles.summaryValue}>
               ¥{totals.adjustedTotal.toLocaleString()}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>差額:</Text>
+            <Text style={styles.summaryLabel}>増減:</Text>
             <Text
               style={[
                 styles.summaryValue,
@@ -516,7 +519,7 @@ export default function InventoryAdjustmentScreen() {
               </View>
 
               <View style={styles.amountRow}>
-                <Text style={styles.amountLabel}>調整後:</Text>
+                <Text style={styles.amountLabel}>更新後:</Text>
                 <TextInput
                   style={styles.amountInput}
                   value={asset.adjustedAmount.toString()}
@@ -527,7 +530,7 @@ export default function InventoryAdjustmentScreen() {
               </View>
 
               <View style={styles.amountRow}>
-                <Text style={styles.amountLabel}>差額:</Text>
+                <Text style={styles.amountLabel}>増減:</Text>
                 <Text
                   style={[
                     styles.amountValue,
