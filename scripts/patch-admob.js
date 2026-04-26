@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * expo prebuild 後に AppDelegate.swift へ AdMob クラッシュ防止パッチを適用する。
+ * expo prebuild 後に以下を自動適用するパッチスクリプト。
  *
- * 問題: Google Mobile Ads SDK がフレームワークロード時にシグナルハンドラを登録するため、
- *       Hermes のシグナルハンドラと競合して iOS 26 でクラッシュする。
- *       JS 側の初期化より前に disableSDKCrashReporting() を呼ぶ必要がある。
+ * 1. AppDelegate.swift へ AdMob クラッシュ防止パッチ
+ *    問題: Google Mobile Ads SDK がフレームワークロード時にシグナルハンドラを登録するため、
+ *          Hermes のシグナルハンドラと競合して iOS 26 でクラッシュする。
+ *          JS 側の初期化より前に disableSDKCrashReporting() を呼ぶ必要がある。
+ *    参考: invertase/react-native-google-mobile-ads #803, facebook/react-native #54859
  *
- * 参考: invertase/react-native-google-mobile-ads #803, facebook/react-native #54859
+ * 2. アプリアイコンを assets/images/icon.png からネイティブアセットへコピー
+ *    問題: expo prebuild が ios/ を再利用する場合、アイコンが更新されないことがある。
  */
 
 const fs = require('fs');
@@ -47,3 +50,22 @@ if (!content.includes(crashReportingCall)) {
 
 fs.writeFileSync(appDelegatePath, content, 'utf8');
 console.log('✅ AppDelegate.swift へのパッチ適用が完了しました');
+
+// ── アイコンコピー ──────────────────────────────────────────────────────────
+const srcIcon = path.join(__dirname, '../assets/images/icon.png');
+const destIcon = path.join(__dirname, '../ios/Tanao/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png');
+
+if (!fs.existsSync(srcIcon)) {
+  console.warn('⚠️  アイコンが見つかりません:', srcIcon);
+} else if (!fs.existsSync(path.dirname(destIcon))) {
+  console.warn('⚠️  アイコンのコピー先ディレクトリが見つかりません:', path.dirname(destIcon));
+} else {
+  const srcHash = fs.readFileSync(srcIcon);
+  const destHash = fs.existsSync(destIcon) ? fs.readFileSync(destIcon) : null;
+  if (destHash && srcHash.equals(destHash)) {
+    console.log('ℹ️  アイコンは最新です（コピー不要）');
+  } else {
+    fs.copyFileSync(srcIcon, destIcon);
+    console.log('✅ アイコンをネイティブアセットにコピーしました');
+  }
+}
