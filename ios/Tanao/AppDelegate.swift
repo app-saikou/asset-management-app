@@ -1,4 +1,5 @@
 import Expo
+import GoogleMobileAds
 import React
 import ReactAppDependencyProvider
 
@@ -13,6 +14,7 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    MobileAds.shared.disableSDKCrashReporting()
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
