@@ -654,22 +654,28 @@ export default function HistoryDetailScreen() {
       const balances = new Map<string, number>();
 
       try {
-        for (const detail of assetDetails) {
-          if (detail.asset_id) {
-            const { data: projection } = await supabase
-              .from('monthly_asset_projections')
-              .select('balance')
-              .eq('user_id', user.id)
-              .eq('projection_run_id', historyItem.projection_run_id)
-              .eq('asset_id', detail.asset_id)
-              .eq('month_year', targetMonthKey)
-              .maybeSingle();
+        const assetIds = assetDetails
+          .map((d) => d.asset_id)
+          .filter((id): id is string => Boolean(id));
 
+        if (assetIds.length > 0) {
+          const { data: projections, error } = await supabase
+            .from('monthly_asset_projections')
+            .select('asset_id, balance')
+            .eq('user_id', user.id)
+            .eq('projection_run_id', historyItem.projection_run_id)
+            .in('asset_id', assetIds)
+            .eq('month_year', targetMonthKey);
+
+          if (error) throw error;
+
+          for (const projection of projections || []) {
             if (
-              projection?.balance !== null &&
-              projection?.balance !== undefined
+              projection.asset_id &&
+              projection.balance !== null &&
+              projection.balance !== undefined
             ) {
-              balances.set(detail.asset_id, Number(projection.balance));
+              balances.set(projection.asset_id, Number(projection.balance));
             }
           }
         }
@@ -1192,7 +1198,22 @@ export default function HistoryDetailScreen() {
           {/* グラフ表示 */}
           {activeTab === 'graph' && (
             <View style={styles.graphSection}>
-              {activePoint && (
+              {chartLoading ? (
+                <View style={styles.skeletonActivePointCard}>
+                  <View style={styles.skeletonActivePointHeader}>
+                    <View style={[styles.skeletonBar, { width: 100 }]} />
+                    <View style={[styles.skeletonBar, { width: 72 }]} />
+                  </View>
+                  <View style={styles.skeletonDivider} />
+                  <View style={styles.skeletonActivePointBody}>
+                    <View style={[styles.skeletonBar, { width: 140, height: 28 }]} />
+                    <View style={{ gap: 6 }}>
+                      <View style={[styles.skeletonBar, { width: 88 }]} />
+                      <View style={[styles.skeletonBar, { width: 88 }]} />
+                    </View>
+                  </View>
+                </View>
+              ) : activePoint ? (
                 <View style={styles.activePointInfoContainer}>
                   <View style={styles.activePointHeader}>
                     <View style={styles.dateAndAgeContainer}>
@@ -1279,13 +1300,20 @@ export default function HistoryDetailScreen() {
                     )}
                   </View>
                 </View>
-              )}
+              ) : null}
               <Text style={styles.sectionTitle}>資産の推移</Text>
               <Text style={styles.graphSubtitle}>
                 タップ & ドラッグで年ごとの資産内訳を確認できます
               </Text>
               {chartLoading ? (
-                <Text style={styles.placeholderText}>読み込み中...</Text>
+                <View style={styles.skeletonContainer}>
+                  <View style={styles.skeletonLegendRow}>
+                    <View style={styles.skeletonLegendItem} />
+                    <View style={styles.skeletonLegendItem} />
+                    <View style={[styles.skeletonLegendItem, { width: 80 }]} />
+                  </View>
+                  <View style={styles.skeletonGraph} />
+                </View>
               ) : chartPoints.length ? (
                 <>
                   <View style={styles.legendRow}>
@@ -1635,41 +1663,9 @@ export default function HistoryDetailScreen() {
             </View>
           )}
 
-          {/* アクションボタン */}
-          <View style={styles.actionContainer}>
-            {isNewResult || isFromOnboarding ? (
-              <>
-                {/* 匿名ユーザーの場合、サインアップボタンのみ表示 */}
-                {user?.is_anonymous === true && isFromOnboarding ? (
-                  <TouchableOpacity
-                    style={styles.signupButton}
-                    onPress={() => {
-                      router.push('/auth/signup?fromOnboarding=true');
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.signupButtonText}>
-                      アカウントを作成
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  // 匿名ユーザー以外の場合、「ホームに戻る」ボタンを表示
-                  <TouchableOpacity
-                    style={styles.completeButton}
-                    onPress={() => {
-                      if (isFromOnboarding) {
-                        router.replace('/(tabs)?showNotificationModal=true');
-                      } else {
-                        router.replace('/(tabs)/home');
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.completeButtonText}>ホームに戻る</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
+          {/* 削除ボタン（履歴詳細表示時のみ） */}
+          {!(isNewResult || isFromOnboarding) && (
+            <View style={styles.actionContainer}>
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={handleDelete}
@@ -1681,9 +1677,42 @@ export default function HistoryDetailScreen() {
                   {deleting ? '削除中...' : '削除'}
                 </Text>
               </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* 固定フッター（新規結果・オンボーディング時） */}
+        {(isNewResult || isFromOnboarding) && (
+          <View style={styles.fixedFooter}>
+            {user?.is_anonymous === true && isFromOnboarding ? (
+              <TouchableOpacity
+                style={styles.signupButton}
+                onPress={() => {
+                  router.push('/auth/signup?fromOnboarding=true');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.signupButtonText}>
+                  アカウントを作成
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.completeButton}
+                onPress={() => {
+                  if (isFromOnboarding) {
+                    router.replace('/(tabs)?showNotificationModal=true');
+                  } else {
+                    router.replace('/(tabs)/home');
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.completeButtonText}>ホームに戻る</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -1779,6 +1808,69 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
+    paddingBottom: 100,
+  },
+  fixedFooter: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: Colors.semantic.border,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  skeletonActivePointCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+  },
+  skeletonActivePointHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingBottom: 8,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.semantic.border,
+  },
+  skeletonDivider: {
+    height: 1,
+    backgroundColor: Colors.semantic.border,
+    marginVertical: 8,
+  },
+  skeletonActivePointBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 4,
+  },
+  skeletonBar: {
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.base.gray200,
+  },
+  skeletonContainer: {
+    marginTop: 8,
+  },
+  skeletonLegendRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  skeletonLegendItem: {
+    width: 52,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.base.gray200,
+  },
+  skeletonGraph: {
+    width: '100%',
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: Colors.base.gray100,
   },
   actionContainer: {
     marginTop: 24,

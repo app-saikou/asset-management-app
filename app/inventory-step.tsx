@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -61,6 +62,7 @@ export default function InventoryStepScreen() {
   });
 
   // 目標年齢チェック関連の状態
+  const [saving, setSaving] = useState(false);
   const [showTargetAgeModal, setShowTargetAgeModal] = useState(false);
   const [targetAgeCheckResult, setTargetAgeCheckResult] =
     useState<TargetAgeCheckResult | null>(null);
@@ -213,7 +215,16 @@ export default function InventoryStepScreen() {
       return;
     }
 
-    const proceedSave = async () => {
+    type SaveResult = {
+      historyId: string | null | undefined;
+      futureValue: number;
+      adjustedTotal: number;
+      annualRate: number;
+      years: number;
+      increaseAmount: number;
+    };
+
+    const proceedSave = async (): Promise<SaveResult> => {
       // annualRate: 調整後資産の加重平均利率（旧エンジン不要）
       const adjustedTotal = totals.adjustedTotal;
       const annualRate =
@@ -361,33 +372,51 @@ export default function InventoryStepScreen() {
         savedTargetMonth
       );
 
-      // 履歴詳細画面に必要なパラメータを渡す
       const increaseAmount = futureValue - totals.adjustedTotal;
+      return { historyId, futureValue, adjustedTotal: totals.adjustedTotal, annualRate, years, increaseAmount };
+    };
 
+    const navigateToResult = (result: SaveResult) => {
       router.push(
-        `/history-detail?isNewCalculation=true&calculationId=${Date.now()}&id=${historyId}&currentAssets=${
-          totals.adjustedTotal
-        }&annualRate=${annualRate}&years=${years}&futureValue=${futureValue}&increaseAmount=${increaseAmount}&createdAt=${new Date().toISOString()}`
+        `/history-detail?isNewCalculation=true&calculationId=${Date.now()}&id=${result.historyId}&currentAssets=${
+          result.adjustedTotal
+        }&annualRate=${result.annualRate}&years=${result.years}&futureValue=${result.futureValue}&increaseAmount=${result.increaseAmount}&createdAt=${new Date().toISOString()}`
       );
     };
 
+    setSaving(true);
+
+    // 広告表示と計算を並行開始
+    const savePromise = proceedSave().catch((error) => {
+      console.error('保存エラー:', error);
+      return null;
+    });
+
     try {
-      // 広告を表示（閉じたら保存を実行）
       const adShown = await showInterstitialAd(async () => {
-        try {
-          await proceedSave();
-        } catch (error) {
-          console.error('保存エラー:', error);
+        // 広告終了時点で計算が終わっていれば即遷移、まだなら待つ
+        const result = await savePromise;
+        if (result) {
+          navigateToResult(result);
+        } else {
+          setSaving(false);
           Alert.alert('エラー', 'データの保存に失敗しました');
         }
       });
 
-      // 広告が表示されなかった場合は即座に保存
+      // 広告が表示されなかった場合は計算完了を待って遷移
       if (!adShown) {
-        await proceedSave();
+        const result = await savePromise;
+        if (result) {
+          navigateToResult(result);
+        } else {
+          setSaving(false);
+          Alert.alert('エラー', 'データの保存に失敗しました');
+        }
       }
     } catch (error) {
       console.error('保存エラー:', error);
+      setSaving(false);
       Alert.alert('エラー', 'データの保存に失敗しました');
     }
   };
@@ -645,6 +674,14 @@ export default function InventoryStepScreen() {
           )}
         </View>
       </View>
+
+      {/* 保存中オーバーレイ（広告表示後〜結果画面遷移まで） */}
+      {saving && (
+        <View style={styles.savingOverlay}>
+          <ActivityIndicator size="large" color={Colors.semantic.button.primary} />
+          <Text style={styles.savingText}>計算中...</Text>
+        </View>
+      )}
 
       {/* 目標年齢更新モーダル */}
       {targetAgeCheckResult && (
@@ -984,5 +1021,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
+  },
+  savingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.semantic.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 100,
+  },
+  savingText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.semantic.text.secondary,
   },
 });
