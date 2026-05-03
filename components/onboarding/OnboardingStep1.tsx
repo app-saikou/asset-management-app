@@ -62,23 +62,23 @@ export default function OnboardingStep1({
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
   };
 
-  // 年齢を計算する関数
-  const calculateAge = (birthDate: Date): number => {
+  const calculateAge = (birthDate: Date): { years: number; months: number } => {
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
 
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
+    if (today.getDate() < birthDate.getDate()) {
+      months--;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
     }
 
-    return age;
+    return { years, months };
   };
 
-  const currentAge = calculateAge(birthDate);
+  const { years: currentAgeYears, months: currentAgeMonths } = calculateAge(birthDate);
 
   // データが変更されたときにonCompleteを呼び出す
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function OnboardingStep1({
               <Text style={styles.inputLabel}>生年月日</Text>
             </View>
             <View style={styles.ageValueContainer}>
-              <Text style={styles.currentValue}>{currentAge}歳</Text>
+              <Text style={styles.currentValue}>{currentAgeYears}歳{currentAgeMonths}ヶ月</Text>
             </View>
           </View>
           <BirthDateField value={birthDate} onChange={setBirthDate} />
@@ -320,12 +320,8 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.primary,
   },
   ageValueContainer: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     minWidth: 84,
     alignItems: 'flex-end',
   },

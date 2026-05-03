@@ -1,6 +1,6 @@
 # Tanao 課題・TODO 全リスト
 
-> 最終更新: 2026-04-07
+> 最終更新: 2026-05-01
 > このファイルで全課題・未対応事項を一元管理する。完了したら `[x]` にして日付を記載。
 
 ---
@@ -25,6 +25,12 @@
 | 2026-04-07 | `AppState` + `useFocusEffect` で通知同期が2重に走る → `useFocusEffect` 削除 | `app/(tabs)/profile.tsx` |
 | 2026-04-07 | `scheduleMonthlyNotification` 内で `targetDay`（スコープ外変数）を参照 → `day` に修正 | `lib/notifications.ts` |
 | 2026-04-07 | 万円モード1万円未満が `0万` 表示 → 小数1桁（`0.2万`）表示に変更 | `app/(tabs)/index.tsx` |
+| 2026-05-01 | グラフY軸バグ修正：マイナス値を `chartOffset` でシフトして gifted-charts の座標系を非負に保つ。Y軸ラベルは実値（マイナス含む）を表示。¥0ラインを参照線で可視化 | `app/history-detail.tsx` |
+| 2026-05-01 | 表・テーブルのマイナス値表示修正：`formatCurrency` / `formatNumber` をマイナス対応に変更（旧: 0にクランプ → 新: `-¥○○万` 表示） | `app/history-detail.tsx`, `hooks/useAssetHistory.ts` |
+| 2026-05-01 | ログインループ修正：匿名ユーザーが `login.tsx` で `/auth/signup` にリダイレクトされ無限ループ → 非匿名ユーザーのみホームへ遷移 | `app/auth/login.tsx` |
+| 2026-05-01 | テーブル年齢列の改行修正：`tableAgeCell` の幅を 100→120px に拡大、`numberOfLines={1}` を追加 | `app/history-detail.tsx` |
+| 2026-05-01 | グラフデフォルト表示を「目標年齢まで」に変更：`showFullRange` state と `visibleChartPoints` で切り替え。「全期間を表示」ボタンで全期間も確認可能 | `app/history-detail.tsx` |
+| 2026-05-03 | アプリ起動時の通知再スケジュール処理を追加：`notification_enabled` かつ許可 `granted` なら `scheduleMonthlyNotification` を1回実行。1回限り通知が次月以降も継続する | `app/_layout.tsx` |
 
 ---
 
@@ -48,9 +54,9 @@
 
 ### 通知
 
-- [x] **月末通知が2月・4月など31日がない月に発火しない** ✅ 2026-04-05
+- [x] **月末通知が2月・4月など31日がない月に発火しない** ✅ 2026-04-05（再スケジュール実装: 2026-05-03）
   - Expo Notifications の `repeats: true` + `day: 31` 固定では2月をスキップ
-  - **修正**: `repeats: true` をやめ、単発トリガー（`type: 'date'`）に変更。アプリ起動時に都度次月日付を計算して再スケジュール
+  - **修正**: `repeats: true` をやめ、単発トリガー（`type: 'date'`）に変更。アプリ起動時に都度次月日付を計算して再スケジュール（`app/_layout.tsx` に実装済み）
 
 - [x] **`calculateNextNotificationDate()` の日付比較に時刻が含まれていない** ✅ 2026-04-05
   - 月末9時通知 → 月末8時に確認すると「今月0時 < 現在8時」で翌月に飛ぶ
@@ -59,6 +65,18 @@
 - [x] **Picker操作のたびに通知が全キャンセル→再スケジュールされる** ✅ 2026-04-05
   - `profile.tsx` の Picker `onValueChange` で即座に `updateNotificationSettings()` が走る
   - **修正**: `onValueChange` では state 更新のみ。「完了」ボタン押下時のみ `updateNotificationSettings()` を実行
+
+---
+
+## 🔴 バグ・致命的な問題（追加 2026-04-27）
+
+### パフォーマンス
+
+- [x] **資産更新後のグラフ表示まで待ち時間がある** ✅ 2026-04-29
+  - グラフ・アクティブポイントカードにスケルトンUI追加（バン！と出現する問題を解消）
+  - 資産別残高クエリをN+1→バッチ（`.in()`）に変更してクエリ回数削減
+  - 広告表示中にsave計算を並列実行し、広告後の待ち時間をほぼゼロに短縮
+  - 関連: `app/history-detail.tsx`, `app/inventory-step.tsx`
 
 ---
 
@@ -76,10 +94,11 @@
 
 ### 通知
 
-- [ ] **通知IDがDBに保存されていない**
+- [ ] **通知IDがDBに保存されていない**（低優先・将来の改善）
   - スケジュール後の `notificationId` を `user_profiles` に保存していない
   - 特定通知のキャンセルができず `cancelAllNotifications()` 全消しに依存
-  - **修正**: `user_profiles` に `notification_id` カラム追加 + 保存
+  - 現状の設計（全消し→再作成）では実害なし。個別キャンセルが必要になれば対応
+  - **修正案（将来）**: `user_profiles` に `notification_id TEXT NULL` カラム追加 + 保存
 
 - [x] **通知許可モーダルが通知ONのユーザーにも毎セッション表示される** ✅ 2026-04-05
   - `profile?.notification_enabled !== false` の条件が広すぎて `true`（ON済み）も含んでいた
@@ -88,6 +107,80 @@
 - [x] **`AppState` と `useFocusEffect` で同じ同期処理が2重に走る** ✅ 2026-04-07
   - `profile.tsx` でどちらも同一の `updateNotificationSettings()` を呼ぶ
   - **修正**: `useFocusEffect` を削除。`AppState` のみ残す（iOS設定変更後の復帰に対応するため）
+
+### フィードバック・評価
+
+- [ ] **アプリ内フィードバック導線**
+  - メール / フォームへのリンクをプロフィール画面に追加
+  - App Store レビューへの誘導も含む
+
+- [ ] **評価依頼（SKStoreReviewRequest）**
+  - 適切なタイミングで `StoreReview.requestReviewAsync()` を呼ぶ
+  - タイミング案: 資産更新3回目 / ストリーク3ヶ月達成時など
+  - 同一セッションで複数回リクエストしないよう `AsyncStorage` でフラグ管理
+
+### バージョン管理
+
+- [ ] **強制バージョンアップ制御**
+  - 古いバージョンのユーザーに更新を促す仕組み
+  - 実装案: Supabase の設定テーブルに `min_required_version` を持つ → 起動時チェック → 古い場合はApp Storeへ誘導するモーダル表示
+  - 強制度: 重大バグ修正時は強制（閉じられない）、通常時はスキップ可
+
+### 通知許可モーダル
+
+- [x] **`undetermined` 状態を `false` として保存してしまうバグ** ✅ 2026-05-02
+  - `assets.tsx`: ATT許可状態が `undetermined` のとき `notification_enabled: false` を保存
+  - **修正済み**: `undetermined` の場合は DB 更新せずモーダルを閉じるだけに変更（line 403-406）
+
+- [x] **ATT → 通知の2連続ダイアログ体験の改善** ✅ 2026-05-03
+  - ATT決定済みユーザーにも固定500ms待機が入っていた
+  - **修正**: ATTリクエスト前に `getTrackingPermissionsAsync()` で状態確認。`not-determined`（初回）なら1500ms待機、決定済みなら待機ゼロ
+
+### オンボーディング
+
+> **設計方針（確定）**
+> - ステップ構成は4つのまま維持（Step1: 名前・年齢 / Step2: 現金・株式 / Step3: 収入・支出・投資 / Step4: 目標年齢・目標額）
+> - Step4（目標年齢・目標額）は計算・グラフに必要なため維持
+> - スキップ機能は作らない（入力UXを改善して不要にする方針）
+> - 計算に最低限必要なのは「年齢・現在資産・収支・投資額・目標年齢・目標額」
+
+**実装済み**
+- [x] HorizontalScrollPicker 導入（Step2・3・4のスライダーを横スクロールピッカーに置換） ✅ 2026-04-30
+- [x] Step2 刻み幅を 50万円 → 20万円に変更 ✅ 2026-04-30
+- [x] ピッカー中央アイテムのzIndexバグ修正・枠幅を 80→96px に拡大 ✅ 2026-04-30
+- [x] 値表示の「ボタンっぽさ」除去 — border/背景色を削除（Step1〜4全ステップ） ✅ 2026-04-30
+- [x] 年齢表示を「XX歳Xヶ月」に変更（Step1） ✅ 2026-04-30
+- [x] Dev用オンボーディングリセットボタン（プロフィール画面、`__DEV__` 限定） ✅ 2026-04-30
+
+**残タスク**
+
+- [ ] **Step3 制約ロジック削除**
+  - 現状: 収入・支出・投資が相互依存（収入 ≥ 支出＋投資を常に強制）→ 一方を変えると他が自動変化して混乱
+  - 改善: 3項目を完全に独立入力にする。制約ロジックをすべて削除
+  - 「収入 < 支出＋投資」になっても入力時には怒らない
+  - 関連: `components/onboarding/OnboardingStep3.tsx`
+
+- [ ] **計算エンジン改修: 現金がゼロ以下になったら投資を停止**
+  - 現状: `lib/projection.ts` の計算にゼロクランプがなく、現金がマイナスになっても投資が継続される
+  - 問題: 「収入 < 支出＋投資」の設定にすると現金が無限にマイナスになり、現実と乖離した結果が出る
+  - 改善: `calculateContribution()` 内で、現金残高が0未満になる場合は投資 contribution を0に抑える
+  - 関連: `lib/projection.ts`
+
+- [ ] **戻ったときの遅延解消**
+  - 現状: 戻るボタンでステップが再マウントされると `currentStep` 変化を検知して DBフェッチ（`fetchAssets()` / `refetch()`）が走り、値の復元が遅い
+  - 改善: `currentStep` 変化時のDBフェッチ＋`isInitialized`リセットを削除。親（`onboarding.tsx`）の `state.data` から即座に復元する設計に統一
+  - 関連: `components/onboarding/OnboardingStep2.tsx`, `OnboardingStep3.tsx`, `app/onboarding.tsx`
+
+- [ ] **ウェルカム画面のロゴ縮小**
+  - 現状: `width={300} height={300}` で大きすぎる
+  - 改善: 180前後に縮小
+  - 関連: `components/onboarding/OnboardingWelcome.tsx`
+
+### 通知
+
+- [ ] **通知が実際に届いているか未確認**
+  - コードは実装済みだが、TestFlight / 実機での動作確認が取れていない
+  - 確認項目: ① 指定日時に通知が届くか ② アプリを再起動したとき次月の通知が再スケジュールされるか ③ 通知からアプリを開いたときの遷移先
 
 ### UI/UX
 
@@ -110,6 +203,13 @@
   - 改善: 資産種別ごとにデフォルト値を設定（現金→0.1%「大手銀行普通預金の平均」、株式→5%「インデックス投資の長期期待値（確定値ではありません）」）
   - 「自分で設定する」で上書き可能に。免責もここ1箇所に集約
 
+- [x] **万円固定表示に変更（円/万円トグル廃止）** ✅ 2026-04-21
+  - DisplayUnitContext から `displayInMan` / `toggleUnit` を削除、常に万円表示
+  - 少額ユーザーへの影響は軽微（ターゲット層は数百万〜数千万円帯）
+
+- [x] **isHidden（資産非表示）を永続化** ✅ 2026-04-21
+  - AsyncStorage `isHidden` キーに保存。アプリ再起動後も維持
+
 - [x] **万円モードで1万円未満を `0.2万` 表示にする** ✅ 2026-04-07
   - 現状: 1万未満は `¥2,000`（円にフォールバック）
   - **修正**: `Math.round(num / 1000) / 10` で小数1桁の万円表示に統一
@@ -118,7 +218,31 @@
 
 ## 🟠 中優先度の改善
 
+### 資産更新画面（UX再設計）
+
+- [ ] **資産アイテムごとの画面遷移を見直す**
+  - 現状: 資産1件ずつ別画面（スタック遷移）で金額を入力する
+  - 課題: 資産が複数あると画面遷移が多くなり、全体の流れが掴みにくい
+  - 検討方向: 全資産を1画面にまとめてスクロール入力 / ボトムシートでのインライン編集 / ステッパー形式（画面数を減らす）など
+  - 参考にしたい体験: 家計簿アプリの一括入力、銀行アプリの振込フロー
+
+### 資産推移グラフ（デザイン・表示改善）
+
+- [x] **デフォルト表示範囲を「目標年齢まで」に変更** ✅ 2026-05-01
+  - 初期表示を目標年齢の時点までにトリム。「全期間を表示」ボタンで全期間も確認可能
+  - 目標年齢未設定の場合は全期間表示にフォールバック
+
+- [ ] **グラフのデザイン改善**
+  - 現状のデザインで気になる点を整理して改善案を検討する
+  - 候補: Y軸ラベルの見やすさ、グラフの色・線の太さ、目標ライン（点線）の強調度合いなど
+
 ### グラフ
+
+- [ ] **履歴画面カードに全履歴スパークラインを埋め込む**
+  - 各カードの右側に `current_assets` の推移を小さな折れ線グラフで表示
+  - `history` 配列（日付順ソート）を各カードに渡し、`react-native-svg` で描画
+  - 前提: 履歴データが十分に蓄積されてから実装する価値が出る（棚卸し実績が少ないと線が短い）
+  - 現状の2点ライン（現在→目標年齢）は意味が薄いため削除済み。このTODO実施まで右側は空欄
 
 - [ ] **将来予測グラフで現金・株式の内訳を色分け表示したい**
   - `monthly_asset_projections` に `asset_type` カラムあり（データは揃っている）
@@ -146,6 +270,45 @@
 
 ### UI
 
+- [x] **「万」を数字より小さく表示（ホーム画面）** ✅ 2026-04-21
+  - heroAmount(60px)→万28px、projectionAmount(44px)→万20px
+  - 数字が主役・単位が補足という視覚階層を実現
+
+- [x] **TotalAssetCard を全面リニューアル** ✅ 2026-04-22
+  - 総資産: 32px → 48px + 万分割（22px）+ tabular-nums
+  - 内訳ドット → 水平帯グラフ1本（黒=現金 / アンバー=株式）
+  - 最終更新日時を時計アイコン付きで右上に表示（例: 4/1 14:30）
+  - `isHidden` 対応をコンポーネント内部に組み込み
+
+- [x] **資産画面タブ廃止 → 縦並びスクロール** ✅ 2026-04-22
+  - 現金/株式タブを削除し、両セクションを縦に並べて全資産を一覧表示
+  - グローバル＋ボタンを廃止、各セクションヘッダーに「追加」ボタンを設置
+  - セクションヘッダーにアイコン追加（現金=Banknote / 株式=BarChart3）
+
+- [x] **AssetCard をリスト行形式に軽量化** ✅ 2026-04-22
+  - 個別カード（シャドウ・ボーダー）→ 行+区切り線形式
+  - AssetSectionCard がコンテナ（角丸ボーダー）で囲む iOS グループリスト形式
+  - 金額を右揃え・tabular-nums 適用
+
+- [x] **アイコンをセクションヘッダーへ移動** ✅ 2026-04-22
+  - 各行に同じアイコンが並ぶノイズを解消
+  - 資産ごとのアイコンカスタマイズは将来対応
+
+- [ ] **`¥` を数字の70%サイズで表示**
+  - 大きい数字の前の¥記号が同サイズだと重い。heroAmount・projectionAmountに適用
+
+- [ ] **負の数は赤色で表示**
+  - 資産減少時などの数字に `color: red` を適用
+
+- [ ] **非表示トグルにHaptic Feedbackを追加**
+  - `expo-haptics` の `impactAsync(ImpactFeedbackStyle.Light)` を `toggleHidden` 呼び出し時に発火
+
+- [ ] **数字更新時フェードインアニメーション**
+  - 画面フォーカス時の資産再取得後、数字がフェードインで切り替わる
+
+- [ ] **プログレスバーのfillアニメーション化**
+  - `Animated.Value` で幅を0→実値にスプリングアニメーション
+
 - [ ] **棚卸し完了時の紙吹雪アニメーション**
   - `react-native-confetti-cannon` が定番
   - Haptics（成功バイブ）と同時発火
@@ -160,7 +323,110 @@
 
 ---
 
+## 🟠 中優先度の改善（追加 2026-04-27）
+
+### 資産推移グラフ
+
+- [ ] **資産推移グラフの改善**
+  - タイムライン（一覧）はあるが、時系列グラフがない
+  - 課題: 「資産が増えている実感」を視覚的に伝えられていない
+  - 改善方針: 履歴画面に総資産の折れ線グラフを追加（`react-native-gifted-charts` の LineChart）
+  - データ: `asset_history.current_assets` を日付順に並べるだけで実装可能
+  - 参考: `docs/competitive-analysis-am-one.md` の方向C（実績グラフ）
+
+### 外観・国際化
+
+- [ ] **ダークモード対応**
+  - 現在 `app.json` の `userInterfaceStyle: "light"` で明示的に無効化
+  - `Colors` トークンはすでに `semantic` 設計になっているため対応しやすい構造
+  - 対応方針: `useColorScheme()` で色を切り替え、`Colors` に `dark` テーマを追加
+  - 工数: 大（全画面の色確認が必要）
+
+- [ ] **多言語対応（UI の英語化）**
+  - App Store 説明文は英語対応済みだが、アプリUI自体は日本語固定
+  - 対応方針: `i18n-js` または `expo-localization` + JSONファイルで文言管理
+  - 優先言語: 英語（en）のみで十分（ターゲット市場は日本だが海外ユーザー対応）
+  - 工数: 大（全文言の抽出・翻訳が必要）
+
 ## 🟢 低優先度・将来の機能
+
+### タイムライン画面の拡張（timeline_events テーブル方式）
+
+> 設計検討日: 2026-05-03  
+> 現状: 一括資産更新（棚卸し）のみ `asset_history` に記録される  
+> 目的: 予算変更・目標更新・マイルストーン達成なども1本のタイムラインに表示する
+
+#### 設計方針: アプローチB（別テーブル）を採用
+
+`asset_history` には手を加えず、新規テーブル `timeline_events` を追加する。
+
+```
+asset_history（既存・継続使用）
+  └─ 棚卸しの記録専用
+     current_assets / future_value / annual_rate / years
+     asset_history_details で各資産の内訳も保持
+
+timeline_events（新規追加）
+  └─ 棚卸し以外の出来事
+     id, user_id, event_type, title, metadata (JSONB), created_at
+```
+
+**event_type の種別（将来追加分含む）**:
+- `milestone`     → metadata: `{ threshold: 10000000, achieved: 10500000 }`
+- `budget_change` → metadata: `{ before: 30000, after: 50000 }`
+- `goal_update`   → metadata: `{ field: "target_age", before: 65, after: 60 }`
+- `asset_edit`    → metadata: `{ asset_name: "SBI証券", before: 500000, after: 620000 }`
+- `streak`        → metadata: `{ months: 12 }`（将来）
+- `subscription`  → metadata: `{ plan: "pro" }`（将来）
+
+**なぜ A（asset_history に event_type 追加）ではなく B か**:
+- Aは `current_assets / future_value` 等がNULLになるレコードが生まれ型安全が崩れる
+- Bはイベント種別を増やす際にテーブル定義変更不要。`event_type` の値を増やすだけ
+
+#### タイムライン表示（表示ロジックのイメージ）
+
+```typescript
+const timeline = [
+  ...asset_history.map(h => ({ ...h, kind: 'inventory' })),
+  ...timeline_events.map(e => ({ ...e, kind: 'event' })),
+].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+// kind で分岐して描画。棚卸しカードは現行デザインを維持
+```
+
+表示例:
+```
+5月3日  📊 棚卸し：総資産 850万円       ← asset_history
+        🎯 目標年齢を65歳→60歳に変更    ← timeline_events
+
+4月15日 📊 棚卸し：総資産 820万円       ← asset_history
+        💰 予算を月3万円→5万円に変更    ← timeline_events
+
+3月1日  🎉 総資産800万円達成！          ← timeline_events
+        📊 棚卸し：総資産 800万円       ← asset_history
+```
+
+#### 既存ユーザーへの影響
+
+- `asset_history` は変更なし → 既存データ・既存画面に影響ゼロ
+- `timeline_events` は新規テーブルのため、アップデート前のイベントは空欄（仕様）
+- INSERT 失敗がコア機能（予算保存など）に影響しないよう副作用として実装（`try/catch` で囲む）
+- RLS（`user_id = auth.uid()`）を最初から設定する
+
+#### 実装スコープ（4フェーズ）
+
+| フェーズ | 内容 | 難易度 |
+|---|---|---|
+| 1. DB | `timeline_events` テーブル追加（SQL migration + RLS） | ★☆☆ |
+| 2. 書き込み | `budget-edit.tsx` / プロフィール更新 / 資産個別編集の保存時に INSERT | ★☆☆ |
+| 3. マイルストーン | 棚卸し完了後に総資産の閾値チェック → 達成時に INSERT | ★★☆ |
+| 4. 表示 | `history.tsx` で両テーブルをマージしてレンダリング（新コンポーネント） | ★★★ |
+
+- [ ] **フェーズ1: `timeline_events` テーブル作成**（SQL migration）
+- [ ] **フェーズ2: 各編集画面でのイベント書き込み**（budget_change / goal_update / asset_edit）
+- [ ] **フェーズ3: マイルストーン判定ロジック**（棚卸し後に閾値チェック）
+- [ ] **フェーズ4: タイムライン画面の統合表示**（history.tsx のUI改修）
+
+---
 
 - [ ] **資産タイプの拡充**（不動産、暗号資産、iDeCo、NISAなど）
 - [ ] **グラフのシェア機能**（「65歳で◯円！」をSNSに投稿）

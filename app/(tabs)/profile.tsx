@@ -30,6 +30,7 @@ import {
   Wallet,
   Bell,
   Calendar,
+  RotateCcw,
 } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -681,6 +682,38 @@ export default function ProfileScreen() {
             showChevron={false}
           />
         </SettingSection>
+
+        {/* 開発用セクション（本番ビルドには含まれない） */}
+        {__DEV__ && (
+          <SettingSection title="開発用">
+            <SettingItem
+              icon={RotateCcw}
+              label="オンボーディングをリセット"
+              onPress={async () => {
+                Alert.alert(
+                  'オンボーディングをリセット',
+                  'onboarding_completed を false に戻します。アプリを再起動するとオンボーディングが表示されます。',
+                  [
+                    { text: 'キャンセル', style: 'cancel' },
+                    {
+                      text: 'リセット',
+                      style: 'destructive',
+                      onPress: async () => {
+                        if (!user?.id) return;
+                        await supabase
+                          .from('user_profiles')
+                          .update({ onboarding_completed: false })
+                          .eq('user_id', user.id);
+                        Alert.alert('完了', 'アプリを再起動してください。');
+                      },
+                    },
+                  ]
+                );
+              }}
+              showChevron={false}
+            />
+          </SettingSection>
+        )}
       </ScrollView>
 
       {/* アカウント削除確認モーダル */}

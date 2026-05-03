@@ -235,10 +235,13 @@ export const useAssetHistory = () => {
 
   // 数値フォーマット
   const formatNumber = (num: number): string => {
-    if (isNaN(num) || !isFinite(num) || num < 0) {
+    if (isNaN(num) || !isFinite(num)) {
       return '0';
     }
-
+    if (num < 0) {
+      const safeNum = Math.max(num, -999999999999);
+      return `-${Math.abs(Math.round(safeNum)).toLocaleString('ja-JP')}`;
+    }
     const safeNum = Math.min(Math.max(num, 0), 999999999999);
     return Math.round(safeNum).toLocaleString('ja-JP');
   };

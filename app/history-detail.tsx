@@ -106,6 +106,7 @@ export default function HistoryDetailScreen() {
     Map<string, number>
   >(new Map());
   const [activeTab, setActiveTab] = useState<'graph' | 'table'>('graph');
+  const [showFullRange, setShowFullRange] = useState(false);
 
   const hasRealSeries = Boolean(currentSeries && currentSeries.points.length);
   const windowWidth = useMemo(() => Dimensions.get('window').width, []);
@@ -175,24 +176,26 @@ export default function HistoryDetailScreen() {
 
   const formatCurrency = (value: number) => {
     if (!Number.isFinite(value)) return '¥0';
-    if (value >= 1_0000_0000) {
-      return `¥${(value / 1_0000_0000).toFixed(1)}億`;
+    const sign = value < 0 ? '-' : '';
+    const abs = Math.abs(value);
+    if (abs >= 1_0000_0000) {
+      return `${sign}¥${(abs / 1_0000_0000).toFixed(1)}億`;
     }
-    if (value >= 1_0000) {
-      return `¥${(value / 1_0000).toFixed(1)}万`;
+    if (abs >= 1_0000) {
+      return `${sign}¥${(abs / 1_0000).toFixed(1)}万`;
     }
-    return `¥${formatNumber(Math.round(value))}`;
+    return `${sign}¥${Math.abs(Math.round(value)).toLocaleString('ja-JP')}`;
   };
   const formatCurrencyByUnit = (value: number, unit: 'oku' | 'man'): string => {
     if (!Number.isFinite(value)) return '¥0';
+    const sign = value < 0 ? '-' : '';
+    const abs = Math.abs(value);
     if (unit === 'oku') {
-      if (value === 0) return '¥0';
-      const v = (value / 1_0000_0000).toFixed(1); // 例: 2.0億
-      return `¥${v}億`;
+      if (abs === 0) return '¥0';
+      return `${sign}¥${(abs / 1_0000_0000).toFixed(1)}億`;
     }
-    if (value === 0) return '¥0';
-    const v = Math.round(value / 1_0000).toString();
-    return `¥${v}万`;
+    if (abs === 0) return '¥0';
+    return `${sign}¥${Math.round(abs / 1_0000)}万`;
   };
 
   const formatYearLabel = (date: Date) => {
@@ -717,9 +720,26 @@ export default function HistoryDetailScreen() {
     });
   }, [previousSeries]);
 
+  // 表示範囲フィルタ（目標年齢まで or 全期間）
+  const visibleChartPoints = useMemo<ChartPoint[]>(() => {
+    if (showFullRange || !targetDate) return chartPoints;
+    return chartPoints.filter((p) => {
+      const date = p.x instanceof Date ? p.x : new Date(p.x);
+      return date <= targetDate;
+    });
+  }, [chartPoints, targetDate, showFullRange]);
+
+  const visiblePreviousChartPoints = useMemo<ChartPoint[]>(() => {
+    if (showFullRange || !targetDate) return previousChartPoints;
+    return previousChartPoints.filter((p) => {
+      const date = p.x instanceof Date ? p.x : new Date(p.x);
+      return date <= targetDate;
+    });
+  }, [previousChartPoints, targetDate, showFullRange]);
+
   const lineChartData = useMemo<GiftedLineItem[]>(() => {
-    if (!chartPoints.length) return [];
-    const items = chartPoints.map((point) => {
+    if (!visibleChartPoints.length) return [];
+    const items = visibleChartPoints.map((point) => {
       return {
         value: point.y,
         label: '',
@@ -735,11 +755,11 @@ export default function HistoryDetailScreen() {
       );
     }
     return items;
-  }, [chartPoints]);
+  }, [visibleChartPoints]);
 
   const previousLineChartData = useMemo<GiftedLineItem[]>(() => {
-    if (!previousChartPoints.length) return [];
-    const items = previousChartPoints.map((point) => {
+    if (!visiblePreviousChartPoints.length) return [];
+    const items = visiblePreviousChartPoints.map((point) => {
       return {
         value: point.y,
         label: '',
@@ -755,7 +775,7 @@ export default function HistoryDetailScreen() {
       );
     }
     return items;
-  }, [previousChartPoints]);
+  }, [visiblePreviousChartPoints]);
 
   const targetAgePointInfo = useMemo<TargetAgePointInfo | null>(() => {
     if (!targetDate || !lineChartData.length) return null;
@@ -850,6 +870,12 @@ export default function HistoryDetailScreen() {
   //   };
   // }, [lineChartData, targetDate]);
 
+  const chartOffset = useMemo(() => {
+    if (!lineChartData.length) return 0;
+    const minVal = Math.min(...lineChartData.map((d) => d.value ?? 0));
+    return minVal < 0 ? Math.abs(minVal) : 0;
+  }, [lineChartData]);
+
   const decoratedLineChartData = useMemo<GiftedLineItem[]>(() => {
     if (!lineChartData.length) return [];
     const total = lineChartData.length;
@@ -878,6 +904,7 @@ export default function HistoryDetailScreen() {
 
       return {
         ...item,
+        value: (item.value ?? 0) + chartOffset,
         // ラベルはデータ側に直接付与（等間隔で最大6個）
         label: hasLabel
           ? safeFormatYearLabel(item.chartPoint.x)?.replace('年', '') ?? ''
@@ -893,19 +920,7 @@ export default function HistoryDetailScreen() {
         textColor: isTargetAge ? Colors.accent.success[600] : undefined,
       };
     });
-  }, [lineChartData, activePoint, targetAgePointInfo]);
-
-  const decoratedPreviousLineChartData = useMemo<GiftedLineItem[]>(() => {
-    if (!previousLineChartData.length) return [];
-    // 前回のデータは点を表示しない（線のみ）
-    return previousLineChartData.map((item) => {
-      return {
-        ...item,
-        label: '',
-        hideDataPoint: true,
-      };
-    });
-  }, [previousLineChartData]);
+  }, [lineChartData, activePoint, targetAgePointInfo, chartOffset]);
 
   // xAxisLabelTexts は使わず、データ側の label を使用する
 
@@ -914,14 +929,17 @@ export default function HistoryDetailScreen() {
     const dataMax = Math.max(
       ...decoratedLineChartData.map((item) => item.value ?? 0)
     );
-    // 目標額も含めた最大値でティックを計算（A案: 目標額を必ず表示）
+    // 目標額も含めた最大値でティックを計算（シフト済み座標系で比較）
     const absoluteMax =
       targetAmount && targetAmount > 0
-        ? Math.max(dataMax, targetAmount)
+        ? Math.max(dataMax, targetAmount + chartOffset)
         : dataMax;
 
+    if (__DEV__) {
+      console.log('[Chart] dataMax(shifted):', dataMax, 'offset:', chartOffset, 'absoluteMax:', absoluteMax);
+    }
     return generateNiceTicks(absoluteMax, 4);
-  }, [decoratedLineChartData, targetAmount]);
+  }, [decoratedLineChartData, targetAmount, chartOffset]);
 
   const yAxisUnit = useMemo<'oku' | 'man'>(() => {
     const maxTick = primaryYAxisTicks[primaryYAxisTicks.length - 1] ?? 0;
@@ -933,19 +951,39 @@ export default function HistoryDetailScreen() {
     return primaryYAxisTicks[primaryYAxisTicks.length - 1];
   }, [primaryYAxisTicks]);
 
+  const decoratedPreviousLineChartData = useMemo<GiftedLineItem[]>(() => {
+    if (!previousLineChartData.length) return [];
+    const cap = lineChartMaxValue ?? Infinity;
+    // 前回のデータも今回と同じ座標系にシフト・maxValue 超えはキャップ
+    return previousLineChartData.map((item) => {
+      return {
+        ...item,
+        value: Math.min((item.value ?? 0) + chartOffset, cap),
+        label: '',
+        hideDataPoint: true,
+      };
+    });
+  }, [previousLineChartData, lineChartMaxValue, chartOffset]);
+
   const lineChartSections = useMemo(() => {
     if (!primaryYAxisTicks.length) return undefined;
     return Math.max(primaryYAxisTicks.length - 1, 1);
   }, [primaryYAxisTicks]);
 
+  const lineChartStepValue = useMemo(() => {
+    if (!lineChartMaxValue || !lineChartSections) return undefined;
+    return lineChartMaxValue / lineChartSections;
+  }, [lineChartMaxValue, lineChartSections]);
+
   const lineChartYAxisLabels = useMemo(() => {
     if (!primaryYAxisTicks.length) return undefined;
+    // tick はシフト済み座標 → -chartOffset で実値に戻してラベル表示
     const labels = primaryYAxisTicks.map((tick) =>
-      formatCurrencyByUnit(tick, yAxisUnit)
+      formatCurrencyByUnit(tick - chartOffset, yAxisUnit)
     );
     const maxLength = Math.max(...labels.map((l) => l.length));
     return labels.map((l) => l.padStart(maxLength, ' '));
-  }, [primaryYAxisTicks, yAxisUnit]);
+  }, [primaryYAxisTicks, yAxisUnit, chartOffset]);
 
   // 後方互換性のため残すが、複数の目標年齢には使用しない
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1002,9 +1040,14 @@ export default function HistoryDetailScreen() {
       setTimeout(() => {
         if (!chartRef.current) return;
 
+        if (!showFullRange) {
+          // 目標年齢モード：データが画面内に収まるので左端から表示
+          chartRef.current.scrollTo({ x: 0, animated: true });
+          return;
+        }
+
         const x = targetAgePointInfo.index * lineChartSpacing;
         // 画面中央に表示するためのオフセット計算
-        // チャートの左端からの位置 - (画面幅 / 2)
         const offset = Math.max(0, x - chartContainerWidth / 2);
 
         if (chartRef.current.scrollTo) {
@@ -1012,7 +1055,17 @@ export default function HistoryDetailScreen() {
         }
       }, 500);
     }
-  }, [chartLoading, targetAgePointInfo, lineChartSpacing, chartContainerWidth]);
+  }, [chartLoading, targetAgePointInfo, lineChartSpacing, chartContainerWidth, showFullRange]);
+
+  // 表示範囲切り替え時：目標年齢点にリセット
+  useEffect(() => {
+    const resetIndex = targetAgePointInfo?.index ?? lineChartData.length - 1;
+    const resetItem = lineChartData[resetIndex];
+    if (resetItem?.chartPoint) {
+      activePointRef.current = resetItem.chartPoint;
+      setActivePoint(resetItem.chartPoint);
+    }
+  }, [showFullRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLinePointPress = useCallback((item?: GiftedLineItem) => {
     if (item?.chartPoint) {
@@ -1374,6 +1427,32 @@ export default function HistoryDetailScreen() {
                     )}
                   </View>
 
+                  {/* 表示範囲タブ */}
+                  {targetDate && (
+                    <View style={styles.rangeTabRow}>
+                      <View style={styles.rangeTabContainer}>
+                        <TouchableOpacity
+                          onPress={() => setShowFullRange(false)}
+                          style={[styles.rangeTab, !showFullRange && styles.rangeTabActive]}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.rangeTabText, !showFullRange && styles.rangeTabTextActive]}>
+                            目標年齢
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => setShowFullRange(true)}
+                          style={[styles.rangeTab, showFullRange && styles.rangeTabActive]}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.rangeTabText, showFullRange && styles.rangeTabTextActive]}>
+                            全期間
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
                   <View
                     style={{
                       width: chartContainerWidth,
@@ -1413,11 +1492,12 @@ export default function HistoryDetailScreen() {
                         labelsExtraHeight={36}
                         maxValue={lineChartMaxValue}
                         noOfSections={lineChartSections}
+                        stepValue={lineChartStepValue}
                         yAxisLabelTexts={lineChartYAxisLabels}
                         showReferenceLine1={Boolean(
                           targetAmount && targetAmount > 0
                         )}
-                        referenceLine1Position={targetAmount ?? 0}
+                        referenceLine1Position={(targetAmount ?? 0) + chartOffset}
                         referenceLine1Config={{
                           color: Colors.accent.success[600],
                           thickness: 2,
@@ -1425,9 +1505,17 @@ export default function HistoryDetailScreen() {
                           dashWidth: 6,
                           dashGap: 4,
                         }}
+                        showReferenceLine2={chartOffset > 0}
+                        referenceLine2Position={chartOffset}
+                        referenceLine2Config={{
+                          color: Colors.base.gray400,
+                          thickness: 1,
+                          width: chartCanvasWidth - CHART_INITIAL_SPACING,
+                          dashWidth: 4,
+                          dashGap: 4,
+                        }}
                         referenceLinesOverChartContent={false}
                         yAxisLabelWidth={70}
-                        yAxisOffset={-20}
                         yAxisTextStyle={{
                           color: '#000',
                           fontSize: 12,
@@ -1536,7 +1624,7 @@ export default function HistoryDetailScreen() {
                             styles.tableAmountCell,
                           ]}
                         >
-                          今回総資産
+                          総資産
                         </Text>
                         <Text
                           style={[
@@ -1544,7 +1632,7 @@ export default function HistoryDetailScreen() {
                             styles.tableBreakdownCell,
                           ]}
                         >
-                          今回現金
+                          現金
                         </Text>
                         <Text
                           style={[
@@ -1552,7 +1640,7 @@ export default function HistoryDetailScreen() {
                             styles.tableBreakdownCell,
                           ]}
                         >
-                          今回株式
+                          株式
                         </Text>
                       </View>
                       {/* データ行 */}
@@ -1583,6 +1671,7 @@ export default function HistoryDetailScreen() {
                                     styles.tableCell,
                                     styles.tableAgeCell,
                                   ]}
+                                  numberOfLines={1}
                                 >
                                   {buildAgeText(
                                     currentPoint.x instanceof Date
@@ -1957,6 +2046,35 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.tertiary,
     marginBottom: 12,
   },
+  rangeTabRow: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rangeTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.semantic.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.semantic.border,
+    padding: 2,
+  },
+  rangeTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  rangeTabActive: {
+    backgroundColor: Colors.primary[500],
+  },
+  rangeTabText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.semantic.text.secondary,
+  },
+  rangeTabTextActive: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
   placeholderText: {
     fontSize: 14,
     color: Colors.semantic.text.secondary,
@@ -2041,10 +2159,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.semantic.text.primary,
-    width: 100,
   },
   ageBadge: {
     marginLeft: 8,
+    flexShrink: 0,
   },
   ageText: {
     fontSize: 13,
@@ -2220,7 +2338,7 @@ const styles = StyleSheet.create({
     width: 100,
   },
   tableAgeCell: {
-    width: 100,
+    width: 120,
   },
   tableAmountCell: {
     width: 100,

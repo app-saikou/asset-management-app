@@ -5,10 +5,11 @@ import React, {
   useRef,
   useImperativeHandle,
   forwardRef,
+  useMemo,
 } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { Wallet, TrendingUp, Info } from 'lucide-react-native';
+import { HorizontalScrollPicker } from '../HorizontalScrollPicker';
 import { Colors } from '../../constants/Colors';
 import { useMultipleAssets } from '../../hooks/useMultipleAssets';
 
@@ -35,11 +36,20 @@ const OnboardingStep2 = forwardRef<OnboardingStep2Ref, OnboardingStep2Props>(
     const [isInitialized, setIsInitialized] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
 
-    // スライダーの値をステップ値に最も近い値に丸める
-    const snapToStep = useCallback((value: number) => {
-      // 50万円単位で丸める
-      return Math.round(value / 500000) * 500000;
-    }, []);
+    const STEP = 200000; // 20万円刻み
+    const MAX = 50000000; // 5000万円
+
+    // 50万円単位で丸める
+    const snapToStep = useCallback(
+      (value: number) => Math.round(value / STEP) * STEP,
+      []
+    );
+
+    // ピッカー用の値リスト
+    const assetValues = useMemo(
+      () => Array.from({ length: MAX / STEP + 1 }, (_, i) => i * STEP),
+      []
+    );
 
     // ステップ2になったときにデータベースから最新の値を取得
     useEffect(() => {
@@ -262,18 +272,12 @@ const OnboardingStep2 = forwardRef<OnboardingStep2Ref, OnboardingStep2Props>(
               </View>
             </View>
 
-            <View style={styles.sliderContainer}>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={50000000}
-                value={cashAmount}
-                onValueChange={handleCashChange}
-                step={500000}
-                minimumTrackTintColor={Colors.primary[600]}
-                maximumTrackTintColor={Colors.semantic.border}
-              />
-            </View>
+            <HorizontalScrollPicker
+              values={assetValues}
+              selectedValue={cashAmount}
+              onValueChange={handleCashChange}
+              formatValue={formatAmount}
+            />
           </View>
 
           {/* 株式資産 */}
@@ -292,18 +296,12 @@ const OnboardingStep2 = forwardRef<OnboardingStep2Ref, OnboardingStep2Props>(
               </View>
             </View>
 
-            <View style={styles.sliderContainer}>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={50000000}
-                value={stockAmount}
-                onValueChange={handleStockChange}
-                step={500000}
-                minimumTrackTintColor={Colors.primary[600]}
-                maximumTrackTintColor={Colors.semantic.border}
-              />
-            </View>
+            <HorizontalScrollPicker
+              values={assetValues}
+              selectedValue={stockAmount}
+              onValueChange={handleStockChange}
+              formatValue={formatAmount}
+            />
           </View>
         </View>
       </View>
@@ -446,12 +444,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amountContainer: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     minWidth: 120,
     alignItems: 'flex-end',
   },
@@ -460,22 +454,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary[600],
     textAlign: 'right',
-  },
-  sliderContainer: {
-    alignItems: 'center',
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-    marginBottom: 0,
-  },
-  sliderThumb: {
-    backgroundColor: Colors.primary[600],
-    width: 20,
-    height: 20,
-  },
-  sliderTrack: {
-    height: 4,
-    borderRadius: 2,
   },
 });

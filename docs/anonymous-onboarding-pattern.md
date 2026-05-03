@@ -425,7 +425,6 @@ export default function Index() {
 ### 重要なポイント
 
 1. **すべてのテーブルで `user_id` を外部キーとして使用**
-
    - 匿名ユーザーと本番ユーザーで同じ `user_id` を使用するため、データの引き継ぎが自動的
 
 2. **RLS (Row Level Security) の設定**

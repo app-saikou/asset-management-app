@@ -1,13 +1,69 @@
 import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFrameworkReady } from '../hooks/useFrameworkReady';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { InterstitialAdProvider } from '../contexts/InterstitialAdContext';
 import { DisplayUnitProvider } from '../contexts/DisplayUnitContext';
 import { initializeAdMob } from '../lib/admob';
-import { requestTrackingPermission } from '../lib/att';
 import * as Linking from 'expo-linking';
+import { useUserProfile } from '../hooks/useAgeBasedCalculation';
+import { getNotificationStatus, scheduleMonthlyNotification } from '../lib/notifications';
+
+// 通知再スケジュール処理（AuthProvider の内側で実行）
+function NotificationRescheduler() {
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const hasRescheduledRef = useRef(false);
+
+  useEffect(() => {
+    // 1セッション1回のみ実行
+    if (hasRescheduledRef.current) {
+      return;
+    }
+
+    // ユーザーとプロフィールが揃うまで待つ
+    if (!user?.id || !profile) {
+      return;
+    }
+
+    // 非同期処理が完了する前に再実行されるのを防ぐため、ここで先にフラグを立てる
+    hasRescheduledRef.current = true;
+
+    const rescheduleNotification = async () => {
+      try {
+        // 通知が有効な場合のみ再スケジュール
+        if (profile.notification_enabled !== true) {
+          console.log('【通知再スケジュール】通知が無効のためスキップ');
+          return;
+        }
+
+        // 通知許可状態を確認
+        const permissionStatus = await getNotificationStatus();
+        if (permissionStatus !== 'granted') {
+          console.log('【通知再スケジュール】通知許可がないためスキップ:', permissionStatus);
+          return;
+        }
+
+        // 通知を再スケジュール
+        const day = profile.notification_day ?? -1;
+        const hour = profile.notification_hour ?? 9;
+        const notificationId = await scheduleMonthlyNotification(day, hour);
+
+        if (notificationId) {
+          console.log('【通知再スケジュール】成功:', { notificationId, day, hour });
+        } else {
+          console.warn('【通知再スケジュール】失敗: notificationId が null');
+        }
+      } catch (error) {
+        console.error('【通知再スケジュール】エラー:', error);
+      }
+    };
+
+    rescheduleNotification();
+  }, [user?.id, profile]);
+
+  return null;
+}
 
 export default function RootLayout() {
   // AdMob初期化とATT許可リクエスト（開発ビルド用）
@@ -95,6 +151,8 @@ export default function RootLayout() {
       <AuthProvider>
         <DisplayUnitProvider>
         <InterstitialAdProvider>
+          {/* 通知再スケジュール処理 */}
+          <NotificationRescheduler />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />

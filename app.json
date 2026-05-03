@@ -3,7 +3,7 @@
     "name": "資産管理・複利計算 - Tanao",
     "subtitle": "NISA・積立投資の将来予測をシミュレーション",
     "slug": "bolt-expo-nativewind",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tanao",
@@ -29,7 +29,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.appsaikou.tanao",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "NSCameraUsageDescription": "このアプリはカメラを使用しません。",
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません。",

@@ -1,7 +1,6 @@
 import React, {
   useState,
   useEffect,
-  useLayoutEffect,
   useCallback,
   useRef,
   useImperativeHandle,
@@ -9,7 +8,7 @@ import React, {
   useMemo,
 } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Slider from '@react-native-community/slider';
+import { HorizontalScrollPicker } from '../HorizontalScrollPicker';
 import {
   Info,
   ArrowDownCircle,
@@ -78,13 +77,6 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
       return Math.round(value / 10000) * 10000;
     }, []);
 
-    // 収入スライダーの初期化を強制するためのref（戻り遷移時にも正しく動作させるため）
-    const incomeSliderMountedRef = useRef(false);
-    // 支出スライダーの初期化を強制するためのref（戻り遷移時にも正しく動作させるため）
-    const expenseSliderMountedRef = useRef(false);
-    // 投資スライダーの初期化を強制するためのref（戻り遷移時にも正しく動作させるため）
-    const investmentSliderMountedRef = useRef(false);
-
     // Step2と同じ構造: ステップ3になったときにデータベースから最新の値を取得
     useEffect(() => {
       if (currentStep === 3) {
@@ -94,10 +86,6 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
         refetch();
         // isInitializedをリセットして、最新の値を反映させる（Step2と同じパターン）
         setIsInitialized(false);
-        // スライダーの強制再設定を有効にするため、refをリセット
-        incomeSliderMountedRef.current = false;
-        expenseSliderMountedRef.current = false;
-        investmentSliderMountedRef.current = false;
       }
     }, [currentStep, refetch]);
 
@@ -145,11 +133,6 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
         setIncomeAmount(newIncomeAmount);
         setExpenseAmount(newExpenseAmount);
         setInvestmentAmount(newInvestmentAmount);
-
-        // 強制再設定を有効にするため、refをリセット
-        incomeSliderMountedRef.current = false;
-        expenseSliderMountedRef.current = false;
-        investmentSliderMountedRef.current = false;
 
         // すべてのPeriodが揃った後に初期化完了
         setIsInitialized(true);
@@ -279,11 +262,6 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
         setExpenseAmount(finalExpenseAmount);
         setInvestmentAmount(finalInvestmentAmount);
 
-        // 強制再設定を有効にするため、refをリセット
-        incomeSliderMountedRef.current = false;
-        expenseSliderMountedRef.current = false;
-        investmentSliderMountedRef.current = false;
-
         setIsInitialized(true);
 
         console.log(
@@ -343,124 +321,45 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
     // Step2と同じ構造: 単位統一により getSliderValue 関数は削除
     // Sliderは円単位で直接制御（value/maximumValue/stepすべて円単位）
 
-    // 収入スライダーの変更ハンドラー（円単位で受け取り、1万円刻みに丸める）
-    // Step2と同じ構造: 単位統一（円単位で受けて、snapToStepで丸めるだけ）
     const handleIncomeChange = useCallback(
       (value: number) => {
-        // 単位統一: valueは既に円単位で来るため、丸めるだけ
         const snappedValue = snapToStep(value);
-        if (snappedValue !== incomeAmount) {
-          setIncomeAmount(snappedValue);
-
-          // 制約: 収入が支出より少なくなった場合、支出も収入に合わせる（収入 >= 支出を保証）
-          if (snappedValue < expenseAmount) {
-            setExpenseAmount(snappedValue);
-          }
-
-          // 制約: 収入が支出+投資より少なくなった場合、投資も調整（収入 >= 支出 + 投資を保証）
-          if (snappedValue < expenseAmount + investmentAmount) {
-            const maxInvestment = Math.max(0, snappedValue - expenseAmount);
-            setInvestmentAmount(maxInvestment);
-          }
-        }
+        if (snappedValue !== incomeAmount) setIncomeAmount(snappedValue);
       },
-      [incomeAmount, expenseAmount, investmentAmount, snapToStep]
+      [incomeAmount, snapToStep]
     );
 
-    // 支出スライダーの変更ハンドラー（円単位で受け取り、1万円刻みに丸める）
-    // Step2と同じ構造: 単位統一（円単位で受けて、snapToStepで丸めるだけ）
     const handleExpenseChange = useCallback(
       (value: number) => {
-        // 単位統一: valueは既に円単位で来るため、丸めるだけ
         const snappedValue = snapToStep(value);
-        if (snappedValue !== expenseAmount) {
-          // 制約: 支出が収入を超えた場合、収入も支出に合わせる（収入 >= 支出を保証）
-          if (snappedValue > incomeAmount) {
-            setIncomeAmount(snappedValue);
-          }
-
-          setExpenseAmount(snappedValue);
-
-          // 制約: 支出が変更された場合、投資も調整（収入 >= 支出 + 投資を保証）
-          if (snappedValue + investmentAmount > incomeAmount) {
-            const maxInvestment = Math.max(0, incomeAmount - snappedValue);
-            setInvestmentAmount(maxInvestment);
-          }
-        }
+        if (snappedValue !== expenseAmount) setExpenseAmount(snappedValue);
       },
-      [expenseAmount, incomeAmount, investmentAmount, snapToStep]
+      [expenseAmount, snapToStep]
     );
 
-    // 投資スライダーの変更ハンドラー（円単位で受け取り、1万円刻みに丸める）
-    // 制約: 投資 <= 収入 - 支出を保証するため、収入または支出を自動調整する
-    // 優先順位: 1. まず収入を増やす（上限100万円まで） 2. 収入が100万円なら支出を減らす
     const handleInvestmentChange = useCallback(
       (value: number) => {
-        // 単位統一: valueは既に円単位で来るため、丸めるだけ
         const snappedValue = snapToStep(value);
-
-        if (snappedValue !== investmentAmount) {
-          // 制約: 投資 <= 収入 - 支出 を保証
-          // 投資が収入-支出を超えそうになった場合の処理
-          const requiredIncome = snappedValue + expenseAmount; // 必要な収入 = 投資 + 支出
-          const incomeMax = 1000000; // 収入の上限
-
-          if (requiredIncome > incomeAmount) {
-            // 投資が収入-支出を超えそうになった場合
-            if (requiredIncome <= incomeMax) {
-              // 収入を増やせば解決できる場合（収入の上限100万円以内）
-              setIncomeAmount(requiredIncome);
-              setInvestmentAmount(snappedValue);
-            } else {
-              // 収入が100万円に達した場合、支出を減らす
-              // 投資 + 支出 <= 100万円 となるように支出を調整
-              const maxExpense = incomeMax - snappedValue;
-              const adjustedExpense = Math.max(0, snapToStep(maxExpense));
-              setExpenseAmount(adjustedExpense);
-              setIncomeAmount(incomeMax);
-              setInvestmentAmount(snappedValue);
-            }
-          } else {
-            // 制約を満たしている場合、そのまま設定
-            setInvestmentAmount(snappedValue);
-          }
-        }
+        if (snappedValue !== investmentAmount) setInvestmentAmount(snappedValue);
       },
-      [investmentAmount, incomeAmount, expenseAmount, snapToStep]
+      [investmentAmount, snapToStep]
     );
 
-    // 投資スライダーの上限値を計算（収入の上限100万円を超えないようにする）
-    const maxInvestmentValue = useMemo(() => {
-      // 投資の上限: 収入-支出（ただし、収入の上限100万円を超えないようにする）
-      // 収入が100万円、支出が100万円の場合、投資の上限は0になる
-      // 投資の物理的上限は50万円
-      const availableInvestment = Math.max(0, incomeAmount - expenseAmount);
-      return Math.min(500000, availableInvestment);
-    }, [incomeAmount, expenseAmount]);
-
-    // 収入や支出が変更されたときに、投資額が上限を超えていないかチェック
-    // 超えている場合は自動的に上限に調整
-    useEffect(() => {
-      if (isInitialized && investmentAmount > maxInvestmentValue) {
-        const adjustedInvestment = Math.max(0, snapToStep(maxInvestmentValue));
-        setInvestmentAmount(adjustedInvestment);
-        console.log('投資額が上限を超えていたため、自動調整しました', {
-          旧投資額: investmentAmount,
-          新投資額: adjustedInvestment,
-          上限値: maxInvestmentValue,
-        });
-      }
-    }, [
-      incomeAmount,
-      expenseAmount,
-      maxInvestmentValue,
-      isInitialized,
-      investmentAmount,
-      snapToStep,
-    ]);
+    const BUDGET_STEP = 10000; // 1万円刻み
+    const incomeValues = useMemo(
+      () => Array.from({ length: 1000000 / BUDGET_STEP + 1 }, (_, i) => i * BUDGET_STEP),
+      []
+    );
+    const expenseValues = useMemo(
+      () => Array.from({ length: 1000000 / BUDGET_STEP + 1 }, (_, i) => i * BUDGET_STEP),
+      []
+    );
+    const investmentValues = useMemo(
+      () => Array.from({ length: 500000 / BUDGET_STEP + 1 }, (_, i) => i * BUDGET_STEP),
+      []
+    );
 
     // 初期化完了後、値が変わった時だけ親に通知（無限ループ防止）
-    // Step2と同じ構造: デバウンス処理は維持（Step3は相互依存があるため）
     useEffect(() => {
       if (!isInitialized) return;
 
@@ -541,128 +440,6 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
     //   }
     // }, [isInitialized, incomeAmount, expenseAmount, investmentAmount]);
 
-    // デバッグ: スライダーの値と上限値を確認
-    useEffect(() => {
-      console.log('【スライダーデバッグ】収入:', {
-        実際の値: incomeAmount,
-        上限値: 1000000,
-        位置の割合: `${((incomeAmount / 1000000) * 100).toFixed(1)}%`,
-        表示金額: formatAmount(incomeAmount),
-      });
-      console.log('【スライダーデバッグ】支出:', {
-        実際の値: expenseAmount,
-        上限値: 1000000,
-        位置の割合: `${((expenseAmount / 1000000) * 100).toFixed(1)}%`,
-        表示金額: formatAmount(expenseAmount),
-      });
-    }, [incomeAmount, expenseAmount]);
-
-    // デバッグ: 収入スライダーの描画直前
-    useEffect(() => {
-      console.log('収入スライダーの描画直前', {
-        incomeAmount,
-        isInitialized,
-        shouldRender: isInitialized && incomeAmount > 0,
-        sliderValue: incomeAmount,
-        sliderPosition: `${((incomeAmount / 1000000) * 100).toFixed(1)}%`,
-      });
-    }, [incomeAmount, isInitialized]);
-
-    // デバッグ: 支出スライダーの描画直前
-    useEffect(() => {
-      console.log('支出スライダーの描画直前', {
-        expenseAmount,
-        isInitialized,
-        shouldRender: isInitialized && expenseAmount > 0,
-        sliderValue: expenseAmount,
-        sliderPosition: `${((expenseAmount / 1000000) * 100).toFixed(1)}%`,
-      });
-    }, [expenseAmount, isInitialized]);
-
-    // 収入スライダーの初期化を強制する
-    // React Native Community Sliderの初期マウント時のバグを回避するため、
-    // 初期化完了後に一度値をリセットしてから再設定する
-    useLayoutEffect(() => {
-      if (isInitialized && !incomeSliderMountedRef.current) {
-        incomeSliderMountedRef.current = true;
-        const currentIncomeAmount = incomeAmount;
-
-        console.log(
-          '【収入スライダー強制再設定】初期化完了後の強制再設定を実行',
-          {
-            現在の値: currentIncomeAmount,
-            位置の割合: `${((currentIncomeAmount / 1000000) * 100).toFixed(
-              1
-            )}%`,
-          }
-        );
-
-        // 一度0にリセットしてから元の値に再設定
-        setIncomeAmount(0);
-        requestAnimationFrame(() => {
-          setIncomeAmount(currentIncomeAmount);
-          console.log('【収入スライダー強制再設定】再設定完了', {
-            再設定値: currentIncomeAmount,
-            位置の割合: `${((currentIncomeAmount / 1000000) * 100).toFixed(
-              1
-            )}%`,
-          });
-        });
-      }
-    }, [isInitialized, incomeAmount]);
-
-    // 支出スライダーの初期化を強制する
-    // React Native Community Sliderの初期マウント時のバグを回避するため、
-    // 初期化完了後に一度値をリセットしてから再設定する
-    useLayoutEffect(() => {
-      if (isInitialized && !expenseSliderMountedRef.current) {
-        expenseSliderMountedRef.current = true;
-        const currentExpenseAmount = expenseAmount;
-
-        console.log(
-          '【支出スライダー強制再設定】初期化完了後の強制再設定を実行',
-          {
-            現在の値: currentExpenseAmount,
-          }
-        );
-
-        // 一度0にリセットしてから元の値に再設定
-        setExpenseAmount(0);
-        requestAnimationFrame(() => {
-          setExpenseAmount(currentExpenseAmount);
-          console.log('【支出スライダー強制再設定】再設定完了', {
-            再設定値: currentExpenseAmount,
-          });
-        });
-      }
-    }, [isInitialized, expenseAmount]);
-
-    // 投資スライダーの初期化を強制する
-    // React Native Community Sliderの初期マウント時のバグを回避するため、
-    // 初期化完了後に一度値をリセットしてから再設定する
-    useLayoutEffect(() => {
-      if (isInitialized && !investmentSliderMountedRef.current) {
-        investmentSliderMountedRef.current = true;
-        const currentInvestmentAmount = investmentAmount;
-
-        console.log(
-          '【投資スライダー強制再設定】初期化完了後の強制再設定を実行',
-          {
-            現在の値: currentInvestmentAmount,
-          }
-        );
-
-        // 一度0にリセットしてから元の値に再設定
-        setInvestmentAmount(0);
-        requestAnimationFrame(() => {
-          setInvestmentAmount(currentInvestmentAmount);
-          console.log('【投資スライダー強制再設定】再設定完了', {
-            再設定値: currentInvestmentAmount,
-          });
-        });
-      }
-    }, [isInitialized, investmentAmount]);
-
     // ツールチップを3秒後に自動的に閉じる
     useEffect(() => {
       if (showTooltip) {
@@ -716,25 +493,12 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
               </View>
             </View>
 
-            <View style={styles.sliderContainer}>
-              {/* 単位統一: Step2と同じ構造 - value/maximumValue/stepすべて円単位 */}
-              {/* 初期化完了後にスライダーをレンダリング（初期位置が正しく表示されるように） */}
-              {isInitialized ? (
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={1000000}
-                  value={incomeAmount}
-                  onValueChange={handleIncomeChange}
-                  step={10000}
-                  minimumTrackTintColor={Colors.primary[600]}
-                  maximumTrackTintColor={Colors.semantic.border}
-                />
-              ) : (
-                // 初期化中は空のViewを表示（レイアウトシフトを防ぐ）
-                <View style={[styles.slider, { height: 32 }]} />
-              )}
-            </View>
+            <HorizontalScrollPicker
+              values={incomeValues}
+              selectedValue={incomeAmount}
+              onValueChange={handleIncomeChange}
+              formatValue={formatAmount}
+            />
           </View>
 
           {/* 支出 */}
@@ -753,25 +517,12 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
               </View>
             </View>
 
-            <View style={styles.sliderContainer}>
-              {/* 単位統一: Step2と同じ構造 - value/maximumValue/stepすべて円単位 */}
-              {/* 初期化完了後にスライダーをレンダリング（初期位置が正しく表示されるように） */}
-              {isInitialized ? (
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={1000000}
-                  value={expenseAmount}
-                  onValueChange={handleExpenseChange}
-                  step={10000}
-                  minimumTrackTintColor={Colors.primary[600]}
-                  maximumTrackTintColor={Colors.semantic.border}
-                />
-              ) : (
-                // 初期化中は空のViewを表示（レイアウトシフトを防ぐ）
-                <View style={[styles.slider, { height: 32 }]} />
-              )}
-            </View>
+            <HorizontalScrollPicker
+              values={expenseValues}
+              selectedValue={expenseAmount}
+              onValueChange={handleExpenseChange}
+              formatValue={formatAmount}
+            />
           </View>
 
           {/* 投資 */}
@@ -790,26 +541,14 @@ const OnboardingStep3 = forwardRef<OnboardingStep3Ref, OnboardingStep3Props>(
               </View>
             </View>
 
-            <View style={styles.sliderContainer}>
-              {/* 単位統一: Step2と同じ構造 - value/maximumValue/stepすべて円単位 */}
-              {/* 初期化完了後にスライダーをレンダリング（初期位置が正しく表示されるように） */}
-              {isInitialized ? (
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={500000} // 投資スライダーの上限値は固定50万円（視覚的な上限）
-                  value={investmentAmount}
-                  onValueChange={handleInvestmentChange}
-                  step={10000}
-                  minimumTrackTintColor={Colors.primary[600]}
-                  maximumTrackTintColor={Colors.semantic.border}
-                />
-              ) : (
-                // 初期化中は空のViewを表示（レイアウトシフトを防ぐ）
-                <View style={[styles.slider, { height: 32 }]} />
-              )}
-            </View>
+            <HorizontalScrollPicker
+              values={investmentValues}
+              selectedValue={investmentAmount}
+              onValueChange={handleInvestmentChange}
+              formatValue={formatAmount}
+            />
           </View>
+
         </View>
       </View>
     );
@@ -945,12 +684,8 @@ const styles = StyleSheet.create({
     color: Colors.semantic.text.primary,
   },
   amountContainer: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     minWidth: 100,
     alignItems: 'flex-end',
   },

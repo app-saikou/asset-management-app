@@ -254,7 +254,7 @@ export async function scheduleMonthlyNotification(
     }
 
     // 単発トリガー: repeats: true + 固定日は短い月（2月など）でスキップされるため、
-    // 毎回アプリ起動時に次回日付を計算して再スケジュールする方式に変更
+    // 毎回アプリ起動時に次回日付を計算して再スケジュールする方式に変更（app/_layout.tsx に実装済み）
     const notificationId = await NotificationsModule.scheduleNotificationAsync({
       content: {
         title: '棚卸しの時間です',

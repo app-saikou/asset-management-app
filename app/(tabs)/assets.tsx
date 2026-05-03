@@ -30,6 +30,7 @@ import { calculateMultiYearResults } from '../../lib/calculationYears';
 import type { MultiYearCalculationResult } from '../../types/calculationYears';
 import { useUserProfile } from '../../hooks/useAgeBasedCalculation';
 import { requestTrackingPermission } from '../../lib/att';
+import * as TrackingTransparency from 'expo-tracking-transparency';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDisplayUnit } from '../../contexts/DisplayUnitContext';
@@ -111,11 +112,19 @@ export default function AssetsScreen() {
   useEffect(() => {
     const requestATTAndShowNotification = async () => {
       try {
-        // 1. ATT許可をリクエスト
+        // 1. ATTが未決定かどうかを事前チェック（ダイアログが出るのは undetermined のみ）
+        const { status: attStatusBefore } =
+          await TrackingTransparency.getTrackingPermissionsAsync();
+        const attWasUndetermined = attStatusBefore === 'undetermined';
+
+        // 2. ATT許可をリクエスト（undetermined なら iOS ダイアログが出る）
         await requestTrackingPermission();
-        
-        // 2. 少し待機（ATTダイアログが閉じるのを待つ）
-        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 3. ATTダイアログが実際に表示された場合のみ待機（閉じるのを待つ）
+        //    決定済みの場合は待機不要 → 通知モーダルへ即進む
+        if (attWasUndetermined) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
         
         // 3. 通知許可モーダルを表示する条件
         // - URLパラメータで指定されている場合（オンボーディング完了後のサインアップ後）
@@ -401,17 +410,8 @@ export default function AssetsScreen() {
               // オンボーディング後は設定アプリ誘導モーダルを表示しない
               // （ユーザーが明示的に拒否した場合は、後で設定画面から有効化できる）
             } else {
-              // undetermined の場合も、安全のためfalseを保存（エラーケースや不明な状態）
-              if (user?.id) {
-                await supabase
-                  .from('user_profiles')
-                  .update({
-                    notification_enabled: false,
-                    notification_day: -1,
-                    notification_hour: 9,
-                  })
-                  .eq('user_id', user.id);
-              }
+              // undetermined: iOS ダイアログがまだ出ていない状態（通常起こらないが念のため）
+              // DB は変更せず、モーダルだけ閉じる
               setShowNotificationModal(false);
             }
           } catch (error) {

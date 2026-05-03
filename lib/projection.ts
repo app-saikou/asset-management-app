@@ -90,13 +90,51 @@ export class MonthlyProjectionEngine {
       return [];
     }
 
-    return assets.map((asset) => {
-      let previousBalance = balances.get(asset.id);
-      if (previousBalance === undefined) {
-        previousBalance = asset.amount;
-      }
+    // 現金・株式の残高を計算し、現金がマイナスになる場合は投資を抑制する
+    // Step1: 全資産の貢献額を仮計算
+    const contributions = new Map<string, number>();
+    assets.forEach((asset) => {
+      contributions.set(asset.id, this.calculateContribution(asset.id, monthYear));
+    });
 
-      const contribution = this.calculateContribution(asset.id, monthYear);
+    // Step2: 現金資産の残高を確認し、投資で現金がマイナスになる場合は投資額を調整
+    const cashAssets = assets.filter((a) => a.type === 'cash');
+    cashAssets.forEach((cashAsset) => {
+      const prevCash = balances.get(cashAsset.id) ?? cashAsset.amount;
+      const cashContrib = contributions.get(cashAsset.id) ?? 0;
+      const projectedCash = prevCash + cashContrib;
+
+      if (projectedCash < 0) {
+        // 現金がマイナスになる場合、投資期間の貢献額を調整
+        this.budgetPeriods.forEach((period) => {
+          if (
+            period.type === 'investment' &&
+            period.source_asset_id === cashAsset.id
+          ) {
+            // 現金から出せる実際の投資額（0以上に制限）
+            const netBeforeInvestment = prevCash + cashContrib + period.monthly_amount;
+            const actualInvestment = Math.max(0, Math.min(period.monthly_amount, netBeforeInvestment));
+            const reduction = period.monthly_amount - actualInvestment;
+
+            if (reduction > 0) {
+              // 現金側: 投資減少分だけ貢献額を増やす（引かれすぎを戻す）
+              contributions.set(cashAsset.id, cashContrib + reduction);
+              // 株式側: 投資減少分だけ貢献額を減らす
+              const stockAssetId = period.target_asset_id;
+              if (stockAssetId) {
+                const stockContrib = contributions.get(stockAssetId) ?? 0;
+                contributions.set(stockAssetId, stockContrib - reduction);
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // Step3: 最終残高を計算
+    return assets.map((asset) => {
+      const previousBalance = balances.get(asset.id) ?? asset.amount;
+      const contribution = contributions.get(asset.id) ?? 0;
       const rate = this.getRate(asset.id, monthYear);
       const balance = (previousBalance + contribution) * (1 + rate / 12);
 

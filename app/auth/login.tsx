@@ -28,16 +28,11 @@ export default function LoginScreen() {
   const [showToast, setShowToast] = useState(false);
   const { signIn, user, loading: authLoading } = useAuth();
 
-  // ユーザーがログインした場合の遷移処理
+  // 通常ユーザーとしてログイン済みの場合はホーム画面に遷移
+  // 匿名ユーザーはここでログインするので遷移しない
   React.useEffect(() => {
-    if (!authLoading && user) {
-      if (user.is_anonymous === true) {
-        // 匿名ユーザーの場合はサインアップ画面に遷移
-        router.replace('/auth/signup');
-      } else {
-        // 通常ユーザーの場合はホーム画面に遷移
-        router.replace('/(tabs)/home');
-      }
+    if (!authLoading && user && !user.is_anonymous) {
+      router.replace('/(tabs)/home');
     }
   }, [user, authLoading]);
 

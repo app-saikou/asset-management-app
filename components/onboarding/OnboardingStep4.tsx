@@ -3,20 +3,25 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useLayoutEffect,
+  useMemo,
 } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { Info, Flag, Target } from 'lucide-react-native';
+import { HorizontalScrollPicker } from '../HorizontalScrollPicker';
 import { Colors } from '../../constants/Colors';
 import { useUserProfile } from '../../hooks/useAgeBasedCalculation';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 const DEFAULT_TARGET_AMOUNT = 20000000; // 2000万円
+const MIN_AMOUNT = 1000000; // 100万円
+const MAX_AMOUNT = 100000000; // 1億円
+const AMOUNT_STEP = 100000; // 10万円刻み
+const MAX_AGE = 100;
+
 const snapToAmountStep = (amount: number) => {
   if (!Number.isFinite(amount)) return DEFAULT_TARGET_AMOUNT;
-  return Math.round(Number(amount) / 100000) * 100000;
+  return Math.round(Number(amount) / AMOUNT_STEP) * AMOUNT_STEP;
 };
 
 interface Step4Data {
@@ -38,224 +43,141 @@ export default function OnboardingStep4({
   const { user } = useAuth();
   const { profile } = useUserProfile();
 
-  // 現在年齢を計算
   const getCurrentAge = () => {
-    if (!profile?.birth_date) return 30; // デフォルト年齢
-
+    if (!profile?.birth_date) return 30;
     const birthDate = new Date(profile.birth_date);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-
-    return Math.max(age, 30); // 最低30歳
+    return Math.max(age, 30);
   };
 
   const currentAge = getCurrentAge();
-  const maxAge = 100;
-
-  const minSelectableAge = Math.min(currentAge + 1, maxAge);
+  const minSelectableAge = Math.min(currentAge + 1, MAX_AGE);
 
   const clampAge = useCallback(
     (value?: number) => {
-      if (!Number.isFinite(value)) {
-        return minSelectableAge;
-      }
-      return Math.min(Math.max(value as number, minSelectableAge), maxAge);
+      if (!Number.isFinite(value)) return minSelectableAge;
+      return Math.min(Math.max(value as number, minSelectableAge), MAX_AGE);
     },
-    [minSelectableAge, maxAge]
+    [minSelectableAge]
   );
 
-  // 初期値の設定
-  // 現在年齢が65歳未満の場合: 65歳
-  // 現在年齢が65歳以上の場合: 現在年齢+1歳（最大100歳）
   const preferredInitialAge =
-    currentAge < 65 ? 65 : Math.min(currentAge + 1, maxAge);
+    currentAge < 65 ? 65 : Math.min(currentAge + 1, MAX_AGE);
 
-  // data?.targetAgeがある場合はclampAgeで制限、ない場合はpreferredInitialAgeをそのまま使用
   const initialTargetAge = data?.targetAge
     ? clampAge(data.targetAge)
-    : Math.min(Math.max(preferredInitialAge, minSelectableAge), maxAge);
+    : Math.min(Math.max(preferredInitialAge, minSelectableAge), MAX_AGE);
 
   const [targetAge, setTargetAge] = useState<number>(initialTargetAge);
   const [targetAmount, setTargetAmount] = useState(
-    snapToAmountStep(data?.targetAmount || DEFAULT_TARGET_AMOUNT)
-  );
-  const [ageSliderValue, setAgeSliderValue] =
-    useState<number>(initialTargetAge);
-  const [amountSliderValue, setAmountSliderValue] = useState(
     snapToAmountStep(data?.targetAmount || DEFAULT_TARGET_AMOUNT)
   );
   const [isReady, setIsReady] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showAgeTooltip, setShowAgeTooltip] = useState(false);
   const [showAmountTooltip, setShowAmountTooltip] = useState(false);
-  const ageSliderInitializedRef = useRef(false);
-  const amountSliderInitializedRef = useRef(false);
 
-  // 金額の範囲設定
-  const minAmount = 1000000; // 100万円
-  const maxAmount = 100000000; // 1億円
+  const ageValues = useMemo(
+    () => Array.from({ length: MAX_AGE - minSelectableAge + 1 }, (_, i) => i + minSelectableAge),
+    [minSelectableAge]
+  );
 
-  // 金額を万円単位でフォーマット（1億円以上は億円単位）
+  const amountValues = useMemo(
+    () => Array.from(
+      { length: (MAX_AMOUNT - MIN_AMOUNT) / AMOUNT_STEP + 1 },
+      (_, i) => MIN_AMOUNT + i * AMOUNT_STEP
+    ),
+    []
+  );
+
+  const formatAge = (age: number) => `${age}歳`;
+
   const formatAmount = (amount: number) => {
-    if (amount >= 100000000) {
-      // 1億円以上は億円単位で表示
-      return `${(amount / 100000000).toFixed(0)}億円`;
-    }
-    if (amount >= 10000) {
-      return `${(amount / 10000).toFixed(0)}万円`;
-    }
+    if (amount >= 100000000) return `${(amount / 100000000).toFixed(0)}億円`;
+    if (amount >= 10000) return `${(amount / 10000).toFixed(0)}万円`;
     return `${amount.toLocaleString()}円`;
   };
 
-  // スライダーの値を1歳刻みにスナップ
-  const snapToAge = (value: number) => {
-    return Math.round(value);
-  };
+  const handleAgeChange = useCallback(
+    (value: number) => {
+      setTargetAge(clampAge(value));
+    },
+    [clampAge]
+  );
 
-  const handleAgeChange = (value: number) => {
-    const snappedValue = snapToAge(value);
-    const finalAge = clampAge(snappedValue);
-    setAgeSliderValue(finalAge);
-    setTargetAge(finalAge);
-  };
+  const handleAmountChange = useCallback((value: number) => {
+    const bounded = Math.min(Math.max(snapToAmountStep(value), MIN_AMOUNT), MAX_AMOUNT);
+    setTargetAmount(bounded);
+  }, []);
 
-  // 金額スライダーのハンドラー（step境界へスナップ）
-  const handleAmountChange = (value: number) => {
-    const snappedValue = snapToAmountStep(value);
-    const boundedAmount = Math.min(
-      Math.max(snappedValue, minAmount),
-      maxAmount
-    );
-    setAmountSliderValue(boundedAmount);
-    setTargetAmount(boundedAmount);
-  };
-
-  // onCompleteをuseRefに保存して、依存配列から除外（無限ループ防止）
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  const prevValuesRef = useRef<{
-    targetAge: number;
-    targetAmount: number;
-  } | null>(null);
+  const prevValuesRef = useRef<{ targetAge: number; targetAmount: number } | null>(null);
 
   const applyInitialValues = useCallback(
     (ageValue: number, amountValue: number, currentAgeOverride?: number) => {
-      // 現在年齢が指定されている場合はそれを使用、なければコンポーネントの現在年齢を使用
       const effectiveCurrentAge = currentAgeOverride ?? currentAge;
-      const effectiveMinSelectableAge = Math.min(
-        effectiveCurrentAge + 1,
-        maxAge
+      const effectiveMinSelectableAge = Math.min(effectiveCurrentAge + 1, MAX_AGE);
+      const adjustedAge = Math.min(Math.max(ageValue, effectiveMinSelectableAge), MAX_AGE);
+      const finalAmount = Math.min(
+        Math.max(snapToAmountStep(amountValue), MIN_AMOUNT),
+        MAX_AMOUNT
       );
-
-      // 目標年齢を現在年齢に基づいて調整
-      const adjustedAge = Math.min(
-        Math.max(ageValue, effectiveMinSelectableAge),
-        maxAge
-      );
-
-      const boundedAmount = Math.min(
-        Math.max(amountValue, minAmount),
-        maxAmount
-      );
-      const finalTargetAmount = snapToAmountStep(boundedAmount);
 
       setTargetAge(adjustedAge);
-      setAgeSliderValue(adjustedAge);
-      setTargetAmount(finalTargetAmount);
-      setAmountSliderValue(finalTargetAmount);
-      ageSliderInitializedRef.current = false;
-      amountSliderInitializedRef.current = false;
-      prevValuesRef.current = {
-        targetAge: adjustedAge,
-        targetAmount: finalTargetAmount,
-      };
-      onCompleteRef.current({
-        targetAge: adjustedAge,
-        targetAmount: finalTargetAmount,
-      });
+      setTargetAmount(finalAmount);
+      prevValuesRef.current = { targetAge: adjustedAge, targetAmount: finalAmount };
+      onCompleteRef.current({ targetAge: adjustedAge, targetAmount: finalAmount });
     },
-    [currentAge, minAmount, maxAmount, maxAge]
+    [currentAge]
   );
 
-  // 生年月日が変更された場合にisReadyをリセット
   useEffect(() => {
-    if (currentStep !== undefined && currentStep !== 4) {
-      return;
-    }
-    // 生年月日が変更された場合は再計算のためisReadyをリセット
+    if (currentStep !== undefined && currentStep !== 4) return;
     setIsReady(false);
   }, [profile?.birth_date, currentStep]);
 
   useEffect(() => {
-    if (currentStep !== undefined && currentStep !== 4) {
-      return;
-    }
-    if (isReady) {
-      return;
-    }
+    if (currentStep !== undefined && currentStep !== 4) return;
+    if (isReady) return;
 
     let isCancelled = false;
 
     const loadValues = async () => {
-      // 現在年齢を再計算（ステップ1で年齢が変更された場合に対応）
       const recalculatedCurrentAge = getCurrentAge();
-      const recalculatedMinSelectableAge = Math.min(
-        recalculatedCurrentAge + 1,
-        maxAge
-      );
-
-      // preferredInitialAgeも再計算
+      const recalculatedMinSelectableAge = Math.min(recalculatedCurrentAge + 1, MAX_AGE);
       const recalculatedPreferredInitialAge =
-        recalculatedCurrentAge < 65
-          ? 65
-          : Math.min(recalculatedCurrentAge + 1, maxAge);
+        recalculatedCurrentAge < 65 ? 65 : Math.min(recalculatedCurrentAge + 1, MAX_AGE);
 
-      // 目標年齢が現在年齢より若い場合は、現在年齢+1歳に調整
       const adjustTargetAge = (age: number | null | undefined): number => {
-        if (!Number.isFinite(age)) {
-          return recalculatedPreferredInitialAge;
-        }
-        const targetAgeValue = age as number;
-        // 目標年齢が現在年齢以下（または現在年齢+1歳未満）の場合は調整
-        if (targetAgeValue < recalculatedMinSelectableAge) {
-          return recalculatedMinSelectableAge;
-        }
-        return Math.min(targetAgeValue, maxAge);
+        if (!Number.isFinite(age)) return recalculatedPreferredInitialAge;
+        const v = age as number;
+        if (v < recalculatedMinSelectableAge) return recalculatedMinSelectableAge;
+        return Math.min(v, MAX_AGE);
       };
 
-      const fallbackAge =
-        adjustTargetAge(data?.targetAge) ?? recalculatedPreferredInitialAge;
-      const fallbackAmount = Number(
-        data?.targetAmount ?? DEFAULT_TARGET_AMOUNT
-      );
+      const fallbackAge = adjustTargetAge(data?.targetAge) ?? recalculatedPreferredInitialAge;
+      const fallbackAmount = Number(data?.targetAmount ?? DEFAULT_TARGET_AMOUNT);
       const hasLocalOverrides =
-        typeof data?.targetAge === 'number' ||
-        typeof data?.targetAmount === 'number';
+        typeof data?.targetAge === 'number' || typeof data?.targetAmount === 'number';
 
       if (hasLocalOverrides) {
         applyInitialValues(fallbackAge, fallbackAmount, recalculatedCurrentAge);
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
         return;
       }
 
       if (!user?.id) {
         applyInitialValues(fallbackAge, fallbackAmount, recalculatedCurrentAge);
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
         return;
       }
 
@@ -268,46 +190,30 @@ export default function OnboardingStep4({
           .order('display_order', { ascending: true })
           .limit(1);
 
-        if (error) {
-          throw error;
-        }
-
+        if (error) throw error;
         if (isCancelled) return;
 
         const record = existingTargets?.[0];
         if (record) {
-          // データベースから取得した値も現在年齢をチェックして調整
-          const adjustedTargetAge = adjustTargetAge(record.target_age);
           applyInitialValues(
-            adjustedTargetAge,
+            adjustTargetAge(record.target_age),
             Number(record.target_amount ?? fallbackAmount),
             recalculatedCurrentAge
           );
         } else {
-          applyInitialValues(
-            fallbackAge,
-            fallbackAmount,
-            recalculatedCurrentAge
-          );
+          applyInitialValues(fallbackAge, fallbackAmount, recalculatedCurrentAge);
         }
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
       } catch (error) {
         console.error('ステップ4: 目標設定の取得に失敗しました', error);
         if (isCancelled) return;
         applyInitialValues(fallbackAge, fallbackAmount, recalculatedCurrentAge);
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
       }
     };
 
     loadValues();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [
     user?.id,
     currentStep,
@@ -316,86 +222,41 @@ export default function OnboardingStep4({
     preferredInitialAge,
     applyInitialValues,
     isReady,
-    profile?.birth_date, // 生年月日が変更された場合に再計算
-    maxAge,
+    profile?.birth_date,
   ]);
 
   useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-
-    if (targetAge && targetAmount) {
-      const prev = prevValuesRef.current;
-      const hasChanged =
-        !prev ||
-        prev.targetAge !== targetAge ||
-        prev.targetAmount !== targetAmount;
-
-      if (hasChanged) {
-        onCompleteRef.current({
-          targetAge: targetAge,
-          targetAmount: targetAmount,
-        });
-        prevValuesRef.current = {
-          targetAge,
-          targetAmount,
-        };
-      }
+    if (!isReady) return;
+    if (!targetAge || !targetAmount) return;
+    const prev = prevValuesRef.current;
+    const hasChanged =
+      !prev || prev.targetAge !== targetAge || prev.targetAmount !== targetAmount;
+    if (hasChanged) {
+      onCompleteRef.current({ targetAge, targetAmount });
+      prevValuesRef.current = { targetAge, targetAmount };
     }
   }, [isReady, targetAge, targetAmount]);
 
-  // ツールチップを3秒後に自動的に閉じる
   useEffect(() => {
     if (showTooltip) {
-      const timer = setTimeout(() => {
-        setShowTooltip(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowTooltip(false), 3000);
+      return () => clearTimeout(t);
     }
   }, [showTooltip]);
 
-  // 目標年齢のツールチップを3秒後に自動的に閉じる
   useEffect(() => {
     if (showAgeTooltip) {
-      const timer = setTimeout(() => {
-        setShowAgeTooltip(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowAgeTooltip(false), 3000);
+      return () => clearTimeout(t);
     }
   }, [showAgeTooltip]);
 
-  // 目標資産額のツールチップを3秒後に自動的に閉じる
   useEffect(() => {
     if (showAmountTooltip) {
-      const timer = setTimeout(() => {
-        setShowAmountTooltip(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowAmountTooltip(false), 3000);
+      return () => clearTimeout(t);
     }
   }, [showAmountTooltip]);
-
-  useLayoutEffect(() => {
-    if (!isReady) return;
-    if (ageSliderInitializedRef.current) return;
-    ageSliderInitializedRef.current = true;
-    const currentValue = targetAge;
-    setAgeSliderValue(minSelectableAge);
-    requestAnimationFrame(() => {
-      setAgeSliderValue(currentValue);
-    });
-  }, [isReady, targetAge, minSelectableAge]);
-
-  useLayoutEffect(() => {
-    if (!isReady) return;
-    if (amountSliderInitializedRef.current) return;
-    amountSliderInitializedRef.current = true;
-    const currentValue = targetAmount;
-    setAmountSliderValue(minAmount);
-    requestAnimationFrame(() => {
-      setAmountSliderValue(currentValue);
-    });
-  }, [isReady, targetAmount, minAmount]);
 
   if (!isReady) {
     return (
@@ -413,7 +274,7 @@ export default function OnboardingStep4({
         <Text style={styles.title}>いつの資産が気になる？</Text>
         <View style={styles.descriptionContainer}>
           <Text style={styles.description}>
-            目標年齢と標資産額を設定してください。
+            目標年齢と目標資産額を設定してください。
           </Text>
           <View style={styles.infoIconContainer}>
             <TouchableOpacity
@@ -442,9 +303,7 @@ export default function OnboardingStep4({
                 <Flag size={24} color={Colors.primary[600]} />
               </View>
               <Text style={styles.sectionTitle}>目標年齢</Text>
-              <View
-                style={[styles.sectionInfoIconContainer, { marginLeft: 8 }]}
-              >
+              <View style={[styles.sectionInfoIconContainer, { marginLeft: 8 }]}>
                 <TouchableOpacity
                   onPress={() => setShowAgeTooltip(!showAgeTooltip)}
                   style={styles.sectionInfoIcon}
@@ -469,28 +328,12 @@ export default function OnboardingStep4({
             </View>
           </View>
 
-          {/* スライダー */}
-          <View style={styles.sliderContainer}>
-            {isReady ? (
-              <Slider
-                key={`age-slider-${minSelectableAge}-${maxAge}`}
-                style={styles.slider}
-                minimumValue={minSelectableAge}
-                maximumValue={maxAge}
-                value={ageSliderValue}
-                onValueChange={handleAgeChange}
-                step={1}
-                minimumTrackTintColor={Colors.primary[600]}
-                maximumTrackTintColor={Colors.semantic.border}
-              />
-            ) : (
-              <View style={styles.sliderPlaceholder} />
-            )}
-            <View style={styles.sliderLabels}>
-              <Text style={styles.sliderLabel}>{minSelectableAge}歳</Text>
-              <Text style={styles.sliderLabel}>{maxAge}歳</Text>
-            </View>
-          </View>
+          <HorizontalScrollPicker
+            values={ageValues}
+            selectedValue={targetAge}
+            onValueChange={handleAgeChange}
+            formatValue={formatAge}
+          />
         </View>
 
         {/* 目標資産額 */}
@@ -501,9 +344,7 @@ export default function OnboardingStep4({
                 <Target size={24} color={Colors.primary[600]} />
               </View>
               <Text style={styles.sectionTitle}>目標額</Text>
-              <View
-                style={[styles.sectionInfoIconContainer, { marginLeft: 8 }]}
-              >
+              <View style={[styles.sectionInfoIconContainer, { marginLeft: 8 }]}>
                 <TouchableOpacity
                   onPress={() => setShowAmountTooltip(!showAmountTooltip)}
                   style={styles.sectionInfoIcon}
@@ -530,30 +371,13 @@ export default function OnboardingStep4({
             </View>
           </View>
 
-          {/* スライダー */}
-          <View style={styles.sliderContainer}>
-            {isReady ? (
-              <Slider
-                style={styles.slider}
-                minimumValue={minAmount}
-                maximumValue={maxAmount}
-                value={amountSliderValue}
-                onValueChange={handleAmountChange}
-                step={100000} // 10万円刻み
-                minimumTrackTintColor={Colors.primary[600]}
-                maximumTrackTintColor={Colors.semantic.border}
-              />
-            ) : (
-              <View style={styles.sliderPlaceholder} />
-            )}
-            <View style={styles.sliderLabels}>
-              <Text style={styles.sliderLabel}>{formatAmount(minAmount)}</Text>
-              <Text style={styles.sliderLabel}>{formatAmount(maxAmount)}</Text>
-            </View>
-          </View>
+          <HorizontalScrollPicker
+            values={amountValues}
+            selectedValue={targetAmount}
+            onValueChange={handleAmountChange}
+            formatValue={formatAmount}
+          />
         </View>
-
-        {/* 目標設定のコツ: 非表示化 */}
       </View>
     </View>
   );
@@ -767,22 +591,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   ageValueContainer: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     minWidth: 84,
     alignItems: 'flex-end',
   },
   amountValueContainer: {
-    backgroundColor: Colors.semantic.background,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.semantic.border,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     minWidth: 120,
     alignItems: 'flex-end',
   },
@@ -791,26 +607,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary[600],
     textAlign: 'right',
-  },
-  sliderContainer: {
-    marginTop: 0,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderPlaceholder: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  sliderLabel: {
-    fontSize: 12,
-    color: Colors.semantic.text.secondary,
   },
   loadingContainer: {
     flex: 1,
